@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A0000006"
-               BuildableName = "TransmissionOpener.app"
-               BlueprintName = "TransmissionOpener"
-               ReferencedContainer = "container:TransmissionOpener.xcodeproj">
+               BuildableName = "TransmissionRemote.app"
+               BlueprintName = "TransmissionRemote"
+               ReferencedContainer = "container:TransmissionRemote.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A0000006"
-            BuildableName = "TransmissionOpener.app"
-            BlueprintName = "TransmissionOpener"
-            ReferencedContainer = "container:TransmissionOpener.xcodeproj">
+            BuildableName = "TransmissionRemote.app"
+            BlueprintName = "TransmissionRemote"
+            ReferencedContainer = "container:TransmissionRemote.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A0000006"
-            BuildableName = "TransmissionOpener.app"
-            BlueprintName = "TransmissionOpener"
-            ReferencedContainer = "container:TransmissionOpener.xcodeproj">
+            BuildableName = "TransmissionRemote.app"
+            BlueprintName = "TransmissionRemote"
+            ReferencedContainer = "container:TransmissionRemote.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
