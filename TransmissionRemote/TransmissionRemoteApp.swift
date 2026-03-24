@@ -76,7 +76,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
-            handleFile(url: url)
+            if url.scheme == "magnet" {
+                handleMagnet(url: url)
+            } else {
+                handleFile(url: url)
+            }
         }
     }
 
@@ -91,6 +95,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
                 await postNotification(title: "Torrent Added", body: name)
             } catch {
                 await postNotification(title: "Failed to Add \(fileName)", body: error.localizedDescription)
+            }
+        }
+    }
+
+    private func handleMagnet(url: URL) {
+        Task {
+            do {
+                let client = TransmissionClient.fromDefaults()
+                let name = try await client.addTorrent(url: url.absoluteString)
+                await postNotification(title: "Torrent Added", body: name)
+            } catch {
+                await postNotification(title: "Failed to Add Magnet", body: error.localizedDescription)
             }
         }
     }
