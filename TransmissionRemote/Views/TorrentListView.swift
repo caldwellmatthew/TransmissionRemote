@@ -91,11 +91,16 @@ struct TorrentListView: View {
             }
             return true
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openTorrentFile)) { _ in
-            showingFileImporter = true
+        .onReceive(NotificationCenter.default.publisher(for: .openTorrentFile)) { notification in
+            if let url = notification.object as? URL {
+                pendingAddSource = .file(url)
+            } else {
+                showingFileImporter = true
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .addTorrentLink)) { _ in
-            pendingAddSource = .link("")
+        .onReceive(NotificationCenter.default.publisher(for: .addTorrentLink)) { notification in
+            let link = (notification.object as? String) ?? ""
+            pendingAddSource = .link(link)
         }
         .alert("Failed to Add Torrent", isPresented: Binding(
             get: { addError != nil },

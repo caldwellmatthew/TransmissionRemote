@@ -77,51 +77,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
             if url.scheme == "magnet" {
-                handleMagnet(url: url)
-            } else {
-                handleFile(url: url)
+                NotificationCenter.default.post(name: .addTorrentLink, object: url.absoluteString)
+            } else if url.isFileURL, url.pathExtension.lowercased() == "torrent" {
+                NotificationCenter.default.post(name: .openTorrentFile, object: url)
             }
         }
-    }
-
-    private func handleFile(url: URL) {
-        guard url.isFileURL, url.pathExtension.lowercased() == "torrent" else { return }
-        let fileName = url.lastPathComponent
-
-        Task {
-            do {
-                let client = TransmissionClient.fromDefaults()
-                let name = try await client.addTorrent(fileURL: url)
-                await postNotification(title: "Torrent Added", body: name)
-            } catch {
-                await postNotification(title: "Failed to Add \(fileName)", body: error.localizedDescription)
-            }
-        }
-    }
-
-    private func handleMagnet(url: URL) {
-        Task {
-            do {
-                let client = TransmissionClient.fromDefaults()
-                let name = try await client.addTorrent(url: url.absoluteString)
-                await postNotification(title: "Torrent Added", body: name)
-            } catch {
-                await postNotification(title: "Failed to Add Magnet", body: error.localizedDescription)
-            }
-        }
-    }
-
-    private func postNotification(title: String, body: String) async {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-        try? await UNUserNotificationCenter.current().add(request)
     }
 }
