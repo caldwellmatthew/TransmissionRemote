@@ -82,12 +82,20 @@ struct TorrentListView: View {
                 }
             }
             .width(min: 200)
-            .customizationID("name")
 
             TableColumn("Progress", value: \.percentDone) { torrent in
                 HStack(spacing: 6) {
-                    ProgressView(value: torrent.percentDone)
-                        .frame(width: 60)
+                    Capsule()
+                        .fill(.tertiary)
+                        .overlay(alignment: .leading) {
+                            GeometryReader { geo in
+                                Capsule()
+                                    .fill(.tint)
+                                    .frame(width: geo.size.width * torrent.percentDone)
+                            }
+                        }
+                        .frame(width: 60, height: 6)
+                        .clipped()
                     Text("\(Int(torrent.percentDone * 100))%")
                         .monospacedDigit()
                         .frame(width: 36, alignment: .trailing)
