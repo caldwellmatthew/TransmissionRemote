@@ -94,11 +94,11 @@ struct TorrentListView: View {
                                     .frame(width: geo.size.width * torrent.percentDone)
                             }
                         }
-                        .frame(width: 60, height: 6)
+                        .frame(height: 6)
                         .clipped()
                     Text("\(Int(torrent.percentDone * 100))%")
                         .monospacedDigit()
-                        .frame(width: 36, alignment: .trailing)
+                        .fixedSize()
                 }
             }
             .width(min: 80, ideal: 110, max: 160)
