@@ -21,13 +21,14 @@ final class TorrentManager {
     }
 
     enum StatusFilter: String, CaseIterable, Identifiable {
-        case all, downloading, seeding, stopped, error
+        case all, active, downloading, seeding, stopped, error
 
         var id: String { rawValue }
 
         var label: String {
             switch self {
             case .all:         "All"
+            case .active:      "Active"
             case .downloading: "Downloading"
             case .seeding:     "Seeding"
             case .stopped:     "Paused"
@@ -38,6 +39,7 @@ final class TorrentManager {
         var systemImage: String {
             switch self {
             case .all:         "tray.full"
+            case .active:      "bolt.circle"
             case .downloading: "arrow.down.circle"
             case .seeding:     "arrow.up.circle"
             case .stopped:     "pause.circle"
@@ -52,6 +54,8 @@ final class TorrentManager {
         switch statusFilter {
         case .all:
             break
+        case .active:
+            result = result.filter { $0.rateDownload > 0 || $0.rateUpload > 0 }
         case .downloading:
             result = result.filter { $0.status == .downloading || $0.status == .downloadWait }
         case .seeding:
