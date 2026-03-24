@@ -10,6 +10,7 @@ struct TorrentListView: View {
     @State private var showingFileImporter = false
     @State private var addURLText = ""
     @State private var addError: String?
+    @State private var showingRemoveConfirmation = false
 
     init() {
         let column = UserDefaults.standard.string(forKey: "sortColumn") ?? "name"
@@ -532,12 +533,25 @@ struct TorrentListView: View {
             .help("Pause selected torrents")
 
             Button {
-                Task { await manager.removeSelected(deleteData: false) }
+                showingRemoveConfirmation = true
             } label: {
                 Label("Remove", systemImage: "trash")
             }
             .disabled(manager.selectedTorrentIDs.isEmpty)
             .help("Remove selected torrents")
+            .confirmationDialog(
+                "Remove \(manager.selectedTorrentIDs.count) torrent\(manager.selectedTorrentIDs.count == 1 ? "" : "s")?",
+                isPresented: $showingRemoveConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Remove Torrent Only") {
+                    Task { await manager.removeSelected(deleteData: false) }
+                }
+                Button("Remove Torrent and Delete Data", role: .destructive) {
+                    Task { await manager.removeSelected(deleteData: true) }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
         }
 
         ToolbarItem(placement: .status) {
