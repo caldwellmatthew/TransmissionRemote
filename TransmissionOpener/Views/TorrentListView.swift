@@ -2,10 +2,17 @@ import SwiftUI
 
 struct TorrentListView: View {
     @Environment(TorrentManager.self) private var manager
-    @State private var sortOrder: [KeyPathComparator<Torrent>] = [
-        KeyPathComparator(\.name, order: .forward),
-    ]
-    @State private var columnCustomization: TableColumnCustomization<Torrent> = .init()
+    @State private var sortOrder: [KeyPathComparator<Torrent>]
+    @AppStorage("torrentTableColumns") private var columnCustomization: TableColumnCustomization<Torrent>
+    @AppStorage("sortColumn") private var sortColumn = "name"
+    @AppStorage("sortAscending") private var sortAscending = true
+
+    init() {
+        let column = UserDefaults.standard.string(forKey: "sortColumn") ?? "name"
+        let ascending = UserDefaults.standard.object(forKey: "sortAscending") as? Bool ?? true
+        let order: SortOrder = ascending ? .forward : .reverse
+        _sortOrder = State(initialValue: [Self.comparator(for: column, order: order)])
+    }
 
     var body: some View {
         @Bindable var manager = manager
@@ -49,6 +56,12 @@ struct TorrentListView: View {
         }
         .searchable(text: $manager.searchText, prompt: "Filter torrents")
         .toolbar { toolbarContent }
+        .onChange(of: sortOrder) { _, newOrder in
+            if let first = newOrder.first {
+                sortColumn = Self.columnName(for: first)
+                sortAscending = first.order == .forward
+            }
+        }
     }
 
     private var sortedTorrents: [Torrent] {
@@ -194,6 +207,32 @@ struct TorrentListView: View {
         case .stopped: return .secondary
         case .checking, .checkWait: return .orange
         case .unknown: return .secondary
+        }
+    }
+
+    private static func comparator(for column: String, order: SortOrder) -> KeyPathComparator<Torrent> {
+        switch column {
+        case "percentDone":  KeyPathComparator(\.percentDone, order: order)
+        case "rateDownload": KeyPathComparator(\.rateDownload, order: order)
+        case "rateUpload":   KeyPathComparator(\.rateUpload, order: order)
+        case "totalSize":    KeyPathComparator(\.totalSize, order: order)
+        case "eta":          KeyPathComparator(\.eta, order: order)
+        case "uploadRatio":  KeyPathComparator(\.uploadRatio, order: order)
+        case "addedDate":    KeyPathComparator(\.addedDate, order: order)
+        default:             KeyPathComparator(\.name, order: order)
+        }
+    }
+
+    private static func columnName(for comparator: KeyPathComparator<Torrent>) -> String {
+        switch comparator.keyPath {
+        case \Torrent.percentDone:  "percentDone"
+        case \Torrent.rateDownload: "rateDownload"
+        case \Torrent.rateUpload:   "rateUpload"
+        case \Torrent.totalSize:    "totalSize"
+        case \Torrent.eta:          "eta"
+        case \Torrent.uploadRatio:  "uploadRatio"
+        case \Torrent.addedDate:    "addedDate"
+        default:                    "name"
         }
     }
 }
