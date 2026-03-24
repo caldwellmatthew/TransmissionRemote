@@ -6,8 +6,8 @@ func formatBytes(_ bytes: Int64) -> String {
     return formatter.string(fromByteCount: bytes)
 }
 
-func formatRate(_ bytesPerSec: Int) -> String {
-    guard bytesPerSec > 0 else { return "" }
+func formatRate(_ bytesPerSec: Int, showZero: Bool = false) -> String {
+    guard bytesPerSec > 0 else { return showZero ? "0 KB/s" : "" }
     let formatter = ByteCountFormatter()
     formatter.countStyle = .file
     formatter.allowedUnits = [.useKB, .useMB, .useGB]

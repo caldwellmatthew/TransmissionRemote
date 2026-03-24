@@ -60,6 +60,7 @@ struct TorrentListView: View {
             }
         }
         .searchable(text: $manager.searchText, prompt: "Filter torrents")
+        .navigationTitle("")
         .toolbar { toolbarContent }
         .onChange(of: sortOrder) { _, newOrder in
             if let first = newOrder.first {
@@ -498,6 +499,41 @@ struct TorrentListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        // Left: filter picker
+        ToolbarItem(placement: .navigation) {
+            Picker("Filter", selection: Bindable(manager).statusFilter) {
+                ForEach(TorrentManager.StatusFilter.allCases) { filter in
+                    Label(filter.label, systemImage: filter.systemImage)
+                        .tag(filter)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelStyle(.titleAndIcon)
+        }
+
+        // Center: speeds
+        ToolbarItem(placement: .status) {
+            if manager.connectionState == .connected {
+                HStack(spacing: 14) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.down")
+                            .foregroundStyle(manager.totalDownloadRate > 0 ? .primary : .tertiary)
+                        Text(formatRate(manager.totalDownloadRate, showZero: true))
+                            .monospacedDigit()
+                    }
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.up")
+                            .foregroundStyle(manager.totalUploadRate > 0 ? .primary : .tertiary)
+                        Text(formatRate(manager.totalUploadRate, showZero: true))
+                            .monospacedDigit()
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+
+        // Right: action buttons
         ToolbarItemGroup(placement: .primaryAction) {
             Menu {
                 Button("Open File...") {
@@ -547,35 +583,6 @@ struct TorrentListView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             }
-        }
-
-        ToolbarItem(placement: .status) {
-            if manager.connectionState == .connected {
-                HStack(spacing: 12) {
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.down")
-                        Text(formatRate(manager.totalDownloadRate))
-                            .monospacedDigit()
-                    }
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.up")
-                        Text(formatRate(manager.totalUploadRate))
-                            .monospacedDigit()
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-        }
-
-        ToolbarItem(placement: .navigation) {
-            Picker("Filter", selection: Bindable(manager).statusFilter) {
-                ForEach(TorrentManager.StatusFilter.allCases) { filter in
-                    Label(filter.label, systemImage: filter.systemImage)
-                        .tag(filter)
-                }
-            }
-            .pickerStyle(.menu)
         }
     }
 
