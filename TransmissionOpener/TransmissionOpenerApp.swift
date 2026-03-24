@@ -4,9 +4,23 @@ import UserNotifications
 @main
 struct TransmissionOpenerApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    @State private var torrentManager = TorrentManager()
 
     var body: some Scene {
+        Window("Transmission Opener", id: "main") {
+            TorrentListView()
+                .environment(torrentManager)
+        }
+        .defaultSize(width: 800, height: 500)
+
         MenuBarExtra("Transmission Opener", systemImage: "arrow.up.doc") {
+            if let stats = torrentManager.sessionStats {
+                Text("\(stats.activeTorrentCount) active, \(stats.pausedTorrentCount) paused")
+                if torrentManager.totalDownloadRate > 0 || torrentManager.totalUploadRate > 0 {
+                    Text("↓ \(formatRate(torrentManager.totalDownloadRate))  ↑ \(formatRate(torrentManager.totalUploadRate))")
+                }
+                Divider()
+            }
             SettingsLink {
                 Text("Settings...")
             }
