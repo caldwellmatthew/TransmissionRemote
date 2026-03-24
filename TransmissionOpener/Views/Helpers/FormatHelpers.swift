@@ -32,3 +32,11 @@ func formatETA(_ seconds: Int) -> String {
         return "\(seconds)s"
     }
 }
+
+func formatDate(_ unixTimestamp: Int) -> String {
+    guard unixTimestamp > 0 else { return "" }
+    let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
+    let formatter = RelativeDateTimeFormatter()
+    formatter.unitsStyle = .abbreviated
+    return formatter.localizedString(for: date, relativeTo: .now)
+}

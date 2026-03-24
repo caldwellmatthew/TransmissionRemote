@@ -2,6 +2,9 @@ import SwiftUI
 
 struct TorrentListView: View {
     @Environment(TorrentManager.self) private var manager
+    @State private var sortOrder: [KeyPathComparator<Torrent>] = [
+        KeyPathComparator(\.name, order: .forward),
+    ]
 
     var body: some View {
         @Bindable var manager = manager
@@ -47,11 +50,15 @@ struct TorrentListView: View {
         .toolbar { toolbarContent }
     }
 
+    private var sortedTorrents: [Torrent] {
+        manager.filteredTorrents.sorted(using: sortOrder)
+    }
+
     private var torrentTable: some View {
         @Bindable var manager = manager
 
-        return Table(manager.filteredTorrents, selection: $manager.selectedTorrentIDs) {
-            TableColumn("Name") { torrent in
+        return Table(sortedTorrents, selection: $manager.selectedTorrentIDs, sortOrder: $sortOrder) {
+            TableColumn("Name", value: \.name) { torrent in
                 HStack(spacing: 6) {
                     Image(systemName: torrent.status.systemImage)
                         .foregroundStyle(statusColor(for: torrent))
@@ -62,7 +69,7 @@ struct TorrentListView: View {
             }
             .width(min: 200)
 
-            TableColumn("Progress") { torrent in
+            TableColumn("Progress", value: \.percentDone) { torrent in
                 HStack(spacing: 6) {
                     ProgressView(value: torrent.percentDone)
                         .frame(width: 60)
@@ -73,37 +80,42 @@ struct TorrentListView: View {
             }
             .width(110)
 
-            TableColumn("↓ Down") { torrent in
+            TableColumn("↓ Down", value: \.rateDownload) { torrent in
                 Text(formatRate(torrent.rateDownload))
                     .monospacedDigit()
                     .foregroundStyle(torrent.rateDownload > 0 ? .primary : .secondary)
             }
             .width(90)
 
-            TableColumn("↑ Up") { torrent in
+            TableColumn("↑ Up", value: \.rateUpload) { torrent in
                 Text(formatRate(torrent.rateUpload))
                     .monospacedDigit()
                     .foregroundStyle(torrent.rateUpload > 0 ? .primary : .secondary)
             }
             .width(90)
 
-            TableColumn("Size") { torrent in
+            TableColumn("Size", value: \.totalSize) { torrent in
                 Text(formatBytes(torrent.totalSize))
                     .monospacedDigit()
             }
             .width(80)
 
-            TableColumn("ETA") { torrent in
+            TableColumn("ETA", value: \.eta) { torrent in
                 Text(formatETA(torrent.eta))
                     .monospacedDigit()
             }
             .width(70)
 
-            TableColumn("Ratio") { torrent in
+            TableColumn("Ratio", value: \.uploadRatio) { torrent in
                 Text(torrent.uploadRatio >= 0 ? String(format: "%.2f", torrent.uploadRatio) : "")
                     .monospacedDigit()
             }
             .width(60)
+
+            TableColumn("Added", value: \.addedDate) { torrent in
+                Text(formatDate(torrent.addedDate))
+            }
+            .width(100)
         }
     }
 
