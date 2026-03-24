@@ -1,6 +1,7 @@
 import Foundation
 
 struct Torrent: Identifiable, Decodable, Sendable, Hashable {
+    // MARK: - Core fields (always present in list view)
     let id: Int
     let name: String
     let status: TorrentStatus
@@ -18,52 +19,86 @@ struct Torrent: Identifiable, Decodable, Sendable, Hashable {
     let peersConnected: Int
     let labels: [String]
 
-    // Detail fields (nil when fetched with list fields only)
+    // MARK: - Extended scalar fields (optional, fetched when requested)
+    let activityDate: Int?
+    let bandwidthPriority: Int?
+    let comment: String?
+    let corruptEver: Int64?
+    let creator: String?
+    let dateCreated: Int?
+    let desiredAvailable: Int64?
+    let downloadLimit: Int?
+    let downloadLimited: Bool?
+    let editDate: Int?
+    let etaIdle: Int?
+    let fileCount: Int?
+    let group: String?
+    let hashString: String?
+    let haveUnchecked: Int64?
+    let haveValid: Int64?
+    let honorsSessionLimits: Bool?
+    let isFinished: Bool?
+    let isPrivate: Bool?
+    let isStalled: Bool?
+    let leftUntilDone: Int64?
+    let magnetLink: String?
+    let maxConnectedPeers: Int?
+    let metadataPercentComplete: Double?
+    let peerLimit: Int?
+    let peersGettingFromUs: Int?
+    let peersSendingToUs: Int?
+    let percentComplete: Double?
+    let pieceCount: Int?
+    let pieceSize: Int64?
+    let primaryMimeType: String?
+    let queuePosition: Int?
+    let recheckProgress: Double?
+    let secondsDownloading: Int?
+    let secondsSeeding: Int?
+    let seedIdleLimit: Int?
+    let seedIdleMode: Int?
+    let seedRatioLimit: Double?
+    let seedRatioMode: Int?
+    let sequentialDownload: Bool?
+    let sizeWhenDone: Int64?
+    let startDate: Int?
+    let torrentFile: String?
+    let uploadedEver: Int64?
+    let uploadLimit: Int?
+    let uploadLimited: Bool?
+    let webseedsSendingToUs: Int?
+
+    // MARK: - Complex/array fields (detail view only)
     let files: [TorrentFile]?
     let fileStats: [TorrentFileStat]?
     let trackers: [TorrentTracker]?
     let trackerStats: [TorrentTrackerStat]?
+    let peers: [TorrentPeer]?
+
+    // MARK: - Field lists for RPC requests
 
     static let listFields: [String] = [
         "id", "name", "status", "percentDone", "rateDownload", "rateUpload",
         "totalSize", "eta", "error", "errorString", "downloadDir",
         "addedDate", "doneDate", "uploadRatio", "peersConnected", "labels",
+        "activityDate", "bandwidthPriority", "comment", "corruptEver",
+        "creator", "dateCreated", "desiredAvailable", "downloadLimit",
+        "downloadLimited", "editDate", "etaIdle", "fileCount", "group",
+        "hashString", "haveUnchecked", "haveValid", "honorsSessionLimits",
+        "isFinished", "isPrivate", "isStalled", "leftUntilDone",
+        "magnetLink", "maxConnectedPeers", "metadataPercentComplete",
+        "peerLimit", "peersGettingFromUs", "peersSendingToUs",
+        "percentComplete", "pieceCount", "pieceSize", "primaryMimeType",
+        "queuePosition", "recheckProgress", "secondsDownloading",
+        "secondsSeeding", "seedIdleLimit", "seedIdleMode", "seedRatioLimit",
+        "seedRatioMode", "sequentialDownload", "sizeWhenDone", "startDate",
+        "torrentFile", "uploadedEver", "uploadLimit", "uploadLimited",
+        "webseedsSendingToUs",
     ]
 
     static let detailFields: [String] = listFields + [
-        "files", "fileStats", "trackers", "trackerStats",
+        "files", "fileStats", "trackers", "trackerStats", "peers",
     ]
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(Int.self, forKey: .id)
-        name = try c.decode(String.self, forKey: .name)
-        status = try c.decode(TorrentStatus.self, forKey: .status)
-        percentDone = try c.decode(Double.self, forKey: .percentDone)
-        rateDownload = try c.decode(Int.self, forKey: .rateDownload)
-        rateUpload = try c.decode(Int.self, forKey: .rateUpload)
-        totalSize = try c.decode(Int64.self, forKey: .totalSize)
-        eta = try c.decode(Int.self, forKey: .eta)
-        error = try c.decode(Int.self, forKey: .error)
-        errorString = try c.decode(String.self, forKey: .errorString)
-        downloadDir = try c.decode(String.self, forKey: .downloadDir)
-        addedDate = try c.decode(Int.self, forKey: .addedDate)
-        doneDate = try c.decode(Int.self, forKey: .doneDate)
-        uploadRatio = try c.decode(Double.self, forKey: .uploadRatio)
-        peersConnected = try c.decode(Int.self, forKey: .peersConnected)
-        labels = try c.decodeIfPresent([String].self, forKey: .labels) ?? []
-        files = try c.decodeIfPresent([TorrentFile].self, forKey: .files)
-        fileStats = try c.decodeIfPresent([TorrentFileStat].self, forKey: .fileStats)
-        trackers = try c.decodeIfPresent([TorrentTracker].self, forKey: .trackers)
-        trackerStats = try c.decodeIfPresent([TorrentTrackerStat].self, forKey: .trackerStats)
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case id, name, status, percentDone, rateDownload, rateUpload
-        case totalSize, eta, error, errorString, downloadDir
-        case addedDate, doneDate, uploadRatio, peersConnected, labels
-        case files, fileStats, trackers, trackerStats
-    }
 }
 
 struct TorrentFile: Decodable, Sendable, Hashable {
@@ -89,4 +124,14 @@ struct TorrentTrackerStat: Decodable, Sendable, Hashable, Identifiable {
     let lastAnnounceSucceeded: Bool
     let seederCount: Int
     let leecherCount: Int
+}
+
+struct TorrentPeer: Decodable, Sendable, Hashable {
+    let address: String
+    let clientName: String
+    let flagStr: String
+    let port: Int
+    let rateToClient: Int
+    let rateToPeer: Int
+    let progress: Double
 }

@@ -40,3 +40,21 @@ func formatDate(_ unixTimestamp: Int) -> String {
     formatter.unitsStyle = .abbreviated
     return formatter.localizedString(for: date, relativeTo: .now)
 }
+
+func formatDuration(_ totalSeconds: Int) -> String {
+    guard totalSeconds > 0 else { return "" }
+    let d = totalSeconds / 86400
+    let h = (totalSeconds % 86400) / 3600
+    let m = (totalSeconds % 3600) / 60
+    if d > 0 { return "\(d)d \(h)h" }
+    if h > 0 { return "\(h)h \(m)m" }
+    return "\(m)m"
+}
+
+func formatPriority(_ priority: Int) -> String {
+    switch priority {
+    case -1: "Low"
+    case 1: "High"
+    default: "Normal"
+    }
+}
