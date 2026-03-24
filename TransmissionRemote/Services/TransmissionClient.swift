@@ -54,17 +54,33 @@ actor TransmissionClient {
         return response.arguments
     }
 
-    // MARK: - Add Torrent
+    // MARK: - Session Info
 
-    func addTorrent(fileURL: URL) async throws -> String {
-        let data = try Data(contentsOf: fileURL)
-        let metainfo = data.base64EncodedString()
-        return try await addTorrent(arguments: ["metainfo": metainfo])
+    func getSession() async throws -> SessionInfo {
+        let body = RPCRequest(
+            method: "session-get",
+            arguments: ["fields": ["download-dir"]] as [String: [String]]
+        )
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(SessionInfoResponse.self, from: data)
+        guard response.result == "success" else {
+            throw TransmissionError.rpcError(response.result)
+        }
+        return response.arguments
     }
 
-    func addTorrent(url: String, paused: Bool = false) async throws -> String {
-        var args: [String: Any] = ["filename": url]
-        if paused { args["paused"] = true }
+    // MARK: - Add Torrent
+
+    func addTorrent(fileURL: URL, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
+        let data = try Data(contentsOf: fileURL)
+        var args = options.asArguments()
+        args["metainfo"] = data.base64EncodedString()
+        return try await addTorrent(arguments: args)
+    }
+
+    func addTorrent(url: String, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
+        var args = options.asArguments()
+        args["filename"] = url
         return try await addTorrent(arguments: args)
     }
 
@@ -190,6 +206,37 @@ private struct TorrentGetResponse: Decodable {
 private struct SessionStatsResponse: Decodable {
     let result: String
     let arguments: SessionStats
+}
+
+private struct SessionInfoResponse: Decodable {
+    let result: String
+    let arguments: SessionInfo
+}
+
+struct SessionInfo: Decodable, Sendable {
+    let downloadDir: String
+
+    enum CodingKeys: String, CodingKey {
+        case downloadDir = "download-dir"
+    }
+}
+
+struct TorrentAddOptions: Sendable {
+    var downloadDir: String?
+    var paused: Bool = false
+    var bandwidthPriority: Int = 0
+    var labels: [String] = []
+    var peerLimit: Int?
+
+    func asArguments() -> [String: Any] {
+        var args: [String: Any] = [:]
+        if let dir = downloadDir, !dir.isEmpty { args["download-dir"] = dir }
+        if paused { args["paused"] = true }
+        if bandwidthPriority != 0 { args["bandwidthPriority"] = bandwidthPriority }
+        if !labels.isEmpty { args["labels"] = labels }
+        if let limit = peerLimit { args["peer-limit"] = limit }
+        return args
+    }
 }
 
 private struct TorrentAddResponse: Decodable {

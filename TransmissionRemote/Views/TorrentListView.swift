@@ -6,9 +6,9 @@ struct TorrentListView: View {
     @AppStorage("torrentTableColumns") private var columnCustomization: TableColumnCustomization<Torrent>
     @AppStorage("sortColumn") private var sortColumn = "name"
     @AppStorage("sortAscending") private var sortAscending = true
-    @State private var showingAddURL = false
+    @State private var showingAddSheet = false
     @State private var showingFileImporter = false
-    @State private var addURLText = ""
+    @State private var pendingAddSource: AddTorrentSheet.Source?
     @State private var addError: String?
     @State private var showingRemoveConfirmation = false
 
@@ -67,33 +67,25 @@ struct TorrentListView: View {
                 sortAscending = first.order == .forward
             }
         }
-        .sheet(isPresented: $showingAddURL) {
-            AddURLSheet(urlText: $addURLText) { url in
-                Task {
-                    do {
-                        _ = try await manager.addTorrent(url: url)
-                    } catch {
-                        addError = error.localizedDescription
-                    }
-                }
+        .sheet(item: $pendingAddSource) { source in
+            AddTorrentSheet(source: source, manager: manager) { error in
+                if let error { addError = error }
             }
         }
         .fileImporter(
             isPresented: $showingFileImporter,
             allowedContentTypes: [.init(filenameExtension: "torrent")!],
-            allowsMultipleSelection: true
+            allowsMultipleSelection: false
         ) { result in
-            guard case .success(let urls) = result else { return }
-            for url in urls {
-                Task { try? await manager.addTorrent(fileURL: url) }
-            }
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            pendingAddSource = .file(url)
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for provider in providers {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in
                     guard let url, url.pathExtension.lowercased() == "torrent" else { return }
                     Task { @MainActor in
-                        try? await manager.addTorrent(fileURL: url)
+                        pendingAddSource = .file(url)
                     }
                 }
             }
@@ -103,8 +95,7 @@ struct TorrentListView: View {
             showingFileImporter = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .addTorrentLink)) { _ in
-            addURLText = ""
-            showingAddURL = true
+            pendingAddSource = .link("")
         }
         .alert("Failed to Add Torrent", isPresented: Binding(
             get: { addError != nil },
@@ -508,8 +499,7 @@ struct TorrentListView: View {
                     showingFileImporter = true
                 }
                 Button("Add Magnet or URL...") {
-                    addURLText = ""
-                    showingAddURL = true
+                    pendingAddSource = .link("")
                 }
             } label: {
                 Label("Add", systemImage: "plus")
@@ -622,36 +612,108 @@ struct TorrentListView: View {
     }
 }
 
-private struct AddURLSheet: View {
+private struct AddTorrentSheet: View {
+    enum Source: Identifiable, Hashable {
+        case file(URL)
+        case link(String)
+
+        var id: String {
+            switch self {
+            case .file(let url): "file:\(url.absoluteString)"
+            case .link(let str): "link:\(str)"
+            }
+        }
+    }
+
+    let source: Source
+    let manager: TorrentManager
+    var onComplete: (String?) -> Void
+
     @Environment(\.dismiss) private var dismiss
-    @Binding var urlText: String
-    var onAdd: (String) -> Void
+    @State private var linkText = ""
+    @State private var downloadDir = ""
+    @State private var startPaused = false
+    @State private var priority = 0
+    @State private var labelsText = ""
+    @State private var isLoading = true
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Add Torrent")
-                .font(.headline)
+        VStack(spacing: 0) {
+            Form {
+                if case .link = source {
+                    TextField("Magnet link or URL:", text: $linkText)
+                } else if case .file(let url) = source {
+                    LabeledContent("File:") {
+                        Text(url.lastPathComponent)
+                            .lineLimit(1)
+                    }
+                }
 
-            TextField("Magnet link or URL", text: $urlText)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 400)
-                .onSubmit { addAndDismiss() }
+                TextField("Download to:", text: $downloadDir)
+                    .help("Leave empty for server default")
+
+                Picker("Priority:", selection: $priority) {
+                    Text("Low").tag(-1)
+                    Text("Normal").tag(0)
+                    Text("High").tag(1)
+                }
+
+                Toggle("Start paused", isOn: $startPaused)
+
+                TextField("Labels:", text: $labelsText)
+                    .help("Comma-separated labels")
+            }
+            .formStyle(.grouped)
+            .frame(width: 400)
 
             HStack {
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("Add") { addAndDismiss() }
+                Spacer()
+                Button("Add") { addTorrent() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(isAddDisabled)
             }
+            .padding()
         }
-        .padding()
+        .task {
+            downloadDir = await manager.getDefaultDownloadDir()
+            if case .link(let str) = source { linkText = str }
+            isLoading = false
+        }
     }
 
-    private func addAndDismiss() {
-        let trimmed = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        onAdd(trimmed)
-        dismiss()
+    private var isAddDisabled: Bool {
+        if case .link = source {
+            return linkText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        return false
+    }
+
+    private var options: TorrentAddOptions {
+        TorrentAddOptions(
+            downloadDir: downloadDir.isEmpty ? nil : downloadDir,
+            paused: startPaused,
+            bandwidthPriority: priority,
+            labels: labelsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        )
+    }
+
+    private func addTorrent() {
+        Task {
+            do {
+                switch source {
+                case .file(let url):
+                    _ = try await manager.addTorrent(fileURL: url, options: options)
+                case .link:
+                    let trimmed = linkText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    _ = try await manager.addTorrent(url: trimmed, options: options)
+                }
+                onComplete(nil)
+            } catch {
+                onComplete(error.localizedDescription)
+            }
+            dismiss()
+        }
     }
 }

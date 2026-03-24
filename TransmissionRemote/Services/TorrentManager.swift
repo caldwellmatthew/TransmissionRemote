@@ -122,16 +122,22 @@ final class TorrentManager {
         startPolling()
     }
 
+    // MARK: - Session
+
+    func getDefaultDownloadDir() async -> String {
+        (try? await client.getSession().downloadDir) ?? ""
+    }
+
     // MARK: - Actions
 
-    func addTorrent(fileURL: URL) async throws -> String {
-        let name = try await client.addTorrent(fileURL: fileURL)
+    func addTorrent(fileURL: URL, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
+        let name = try await client.addTorrent(fileURL: fileURL, options: options)
         await refresh()
         return name
     }
 
-    func addTorrent(url: String) async throws -> String {
-        let name = try await client.addTorrent(url: url)
+    func addTorrent(url: String, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
+        let name = try await client.addTorrent(url: url, options: options)
         await refresh()
         return name
     }
