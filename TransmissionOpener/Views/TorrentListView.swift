@@ -5,6 +5,7 @@ struct TorrentListView: View {
     @State private var sortOrder: [KeyPathComparator<Torrent>] = [
         KeyPathComparator(\.name, order: .forward),
     ]
+    @State private var columnCustomization: TableColumnCustomization<Torrent> = .init()
 
     var body: some View {
         @Bindable var manager = manager
@@ -57,7 +58,7 @@ struct TorrentListView: View {
     private var torrentTable: some View {
         @Bindable var manager = manager
 
-        return Table(sortedTorrents, selection: $manager.selectedTorrentIDs, sortOrder: $sortOrder) {
+        return Table(sortedTorrents, selection: $manager.selectedTorrentIDs, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
             TableColumn("Name", value: \.name) { torrent in
                 HStack(spacing: 6) {
                     Image(systemName: torrent.status.systemImage)
@@ -68,6 +69,7 @@ struct TorrentListView: View {
                 }
             }
             .width(min: 200)
+            .customizationID("name")
 
             TableColumn("Progress", value: \.percentDone) { torrent in
                 HStack(spacing: 6) {
@@ -79,6 +81,7 @@ struct TorrentListView: View {
                 }
             }
             .width(110)
+            .customizationID("progress")
 
             TableColumn("↓ Down", value: \.rateDownload) { torrent in
                 Text(formatRate(torrent.rateDownload))
@@ -86,6 +89,7 @@ struct TorrentListView: View {
                     .foregroundStyle(torrent.rateDownload > 0 ? .primary : .secondary)
             }
             .width(90)
+            .customizationID("down")
 
             TableColumn("↑ Up", value: \.rateUpload) { torrent in
                 Text(formatRate(torrent.rateUpload))
@@ -93,29 +97,34 @@ struct TorrentListView: View {
                     .foregroundStyle(torrent.rateUpload > 0 ? .primary : .secondary)
             }
             .width(90)
+            .customizationID("up")
 
             TableColumn("Size", value: \.totalSize) { torrent in
                 Text(formatBytes(torrent.totalSize))
                     .monospacedDigit()
             }
             .width(80)
+            .customizationID("size")
 
             TableColumn("ETA", value: \.eta) { torrent in
                 Text(formatETA(torrent.eta))
                     .monospacedDigit()
             }
             .width(70)
+            .customizationID("eta")
 
             TableColumn("Ratio", value: \.uploadRatio) { torrent in
                 Text(torrent.uploadRatio >= 0 ? String(format: "%.2f", torrent.uploadRatio) : "")
                     .monospacedDigit()
             }
             .width(60)
+            .customizationID("ratio")
 
             TableColumn("Added", value: \.addedDate) { torrent in
                 Text(formatDate(torrent.addedDate))
             }
             .width(100)
+            .customizationID("added")
         }
     }
 
