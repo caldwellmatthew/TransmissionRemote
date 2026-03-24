@@ -131,6 +131,23 @@ actor TransmissionClient {
         try await performAction("torrent-reannounce", ids: ids)
     }
 
+    func setLocation(ids: [Int], location: String, move: Bool) async throws {
+        let body: [String: Any] = [
+            "method": "torrent-set-location",
+            "arguments": [
+                "ids": ids,
+                "location": location,
+                "move": move,
+            ] as [String: Any],
+        ]
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        let responseData = try await callRPCRaw(body: jsonData)
+        let response = try JSONDecoder().decode(SimpleResponse.self, from: responseData)
+        guard response.result == "success" else {
+            throw TransmissionError.rpcError(response.result)
+        }
+    }
+
     private func performAction(_ method: String, ids: [Int]) async throws {
         let body = RPCRequest(method: method, arguments: ["ids": ids])
         let data = try await callRPC(body: body)

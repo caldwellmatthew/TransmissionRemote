@@ -174,4 +174,15 @@ final class TorrentManager {
         try? await client.verifyTorrents(ids: ids)
         await refresh()
     }
+
+    func reannounceSelected() async {
+        let ids = Array(selectedTorrentIDs)
+        guard !ids.isEmpty else { return }
+        try? await client.reannounceTorrents(ids: ids)
+    }
+
+    func setLocation(ids: [Int], location: String, move: Bool) async {
+        try? await client.setLocation(ids: ids, location: location, move: move)
+        await refresh()
+    }
 }
