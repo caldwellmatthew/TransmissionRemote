@@ -10,6 +10,7 @@ extension Notification.Name {
 struct TransmissionRemoteApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var torrentManager = TorrentManager()
+    @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
     var body: some Scene {
         Window("Transmission Remote", id: "main") {
@@ -36,7 +37,7 @@ struct TransmissionRemoteApp: App {
             }
         }
 
-        MenuBarExtra("Transmission Remote", systemImage: "arrow.up.doc") {
+        MenuBarExtra("Transmission Remote", systemImage: "arrow.up.doc", isInserted: $showMenuBarExtra) {
             if let stats = torrentManager.sessionStats {
                 Text("\(stats.activeTorrentCount) active, \(stats.pausedTorrentCount) paused")
                 if torrentManager.totalDownloadRate > 0 || torrentManager.totalUploadRate > 0 {
@@ -55,6 +56,7 @@ struct TransmissionRemoteApp: App {
 
         Settings {
             SettingsView()
+                .environment(torrentManager)
         }
     }
 }
