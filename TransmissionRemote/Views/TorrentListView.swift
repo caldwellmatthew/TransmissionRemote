@@ -101,7 +101,7 @@ struct TorrentListView: View {
                         .frame(width: 36, alignment: .trailing)
                 }
             }
-            .width(110)
+            .width(min: 80, ideal: 110, max: 160)
             .customizationID("progress")
 
             TableColumn("↓ Down", value: \.rateDownload) { torrent in
@@ -109,7 +109,7 @@ struct TorrentListView: View {
                     .monospacedDigit()
                     .foregroundStyle(torrent.rateDownload > 0 ? .primary : .secondary)
             }
-            .width(90)
+            .width(min: 60, ideal: 90, max: 140)
             .customizationID("down")
 
             TableColumn("↑ Up", value: \.rateUpload) { torrent in
@@ -117,34 +117,34 @@ struct TorrentListView: View {
                     .monospacedDigit()
                     .foregroundStyle(torrent.rateUpload > 0 ? .primary : .secondary)
             }
-            .width(90)
+            .width(min: 60, ideal: 90, max: 140)
             .customizationID("up")
 
             TableColumn("Size", value: \.totalSize) { torrent in
                 Text(formatBytes(torrent.totalSize))
                     .monospacedDigit()
             }
-            .width(80)
+            .width(min: 50, ideal: 80, max: 120)
             .customizationID("size")
 
             TableColumn("ETA", value: \.eta) { torrent in
                 Text(formatETA(torrent.eta))
                     .monospacedDigit()
             }
-            .width(70)
+            .width(min: 50, ideal: 70, max: 120)
             .customizationID("eta")
 
             TableColumn("Ratio", value: \.uploadRatio) { torrent in
                 Text(torrent.uploadRatio >= 0 ? String(format: "%.2f", torrent.uploadRatio) : "")
                     .monospacedDigit()
             }
-            .width(60)
+            .width(min: 40, ideal: 60, max: 100)
             .customizationID("ratio")
 
             TableColumn("Added", value: \.addedDate) { torrent in
                 Text(formatDate(torrent.addedDate))
             }
-            .width(100)
+            .width(min: 70, ideal: 100, max: 150)
             .customizationID("added")
         }
     }
