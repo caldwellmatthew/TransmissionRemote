@@ -159,10 +159,16 @@ struct TorrentListView: View {
         ToolbarItem(placement: .status) {
             if manager.connectionState == .connected {
                 HStack(spacing: 12) {
-                    Label(formatRate(manager.totalDownloadRate), systemImage: "arrow.down")
-                        .monospacedDigit()
-                    Label(formatRate(manager.totalUploadRate), systemImage: "arrow.up")
-                        .monospacedDigit()
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.down")
+                        Text(formatRate(manager.totalDownloadRate))
+                            .monospacedDigit()
+                    }
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.up")
+                        Text(formatRate(manager.totalUploadRate))
+                            .monospacedDigit()
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
