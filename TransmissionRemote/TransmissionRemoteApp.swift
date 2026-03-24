@@ -12,6 +12,13 @@ struct TransmissionRemoteApp: App {
                 .environment(torrentManager)
         }
         .defaultSize(width: 800, height: 500)
+        .commands {
+            CommandGroup(after: .toolbar) {
+                Button("Reset Columns to Default") {
+                    UserDefaults.standard.removeObject(forKey: "torrentTableColumns")
+                }
+            }
+        }
 
         MenuBarExtra("Transmission Remote", systemImage: "arrow.up.doc") {
             if let stats = torrentManager.sessionStats {
