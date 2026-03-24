@@ -30,7 +30,7 @@ final class TorrentManager {
             case .all:         "All"
             case .downloading: "Downloading"
             case .seeding:     "Seeding"
-            case .stopped:     "Stopped"
+            case .stopped:     "Paused"
             case .error:       "Errors"
             }
         }
@@ -40,7 +40,7 @@ final class TorrentManager {
             case .all:         "tray.full"
             case .downloading: "arrow.down.circle"
             case .seeding:     "arrow.up.circle"
-            case .stopped:     "stop.circle"
+            case .stopped:     "pause.circle"
             case .error:       "exclamationmark.triangle"
             }
         }

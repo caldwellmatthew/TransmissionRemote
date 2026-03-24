@@ -16,7 +16,7 @@ enum TorrentStatus: Int, Codable, Sendable {
 
     var label: String {
         switch self {
-        case .stopped:      "Stopped"
+        case .stopped:      "Paused"
         case .checkWait:    "Queued to verify"
         case .checking:     "Verifying"
         case .downloadWait: "Queued"
@@ -29,7 +29,7 @@ enum TorrentStatus: Int, Codable, Sendable {
 
     var systemImage: String {
         switch self {
-        case .stopped:      "stop.circle"
+        case .stopped:      "pause.circle"
         case .checkWait:    "clock"
         case .checking:     "magnifyingglass"
         case .downloadWait: "clock"

@@ -155,10 +155,10 @@ struct TorrentListView: View {
             Button {
                 Task { await manager.stopSelected() }
             } label: {
-                Label("Stop", systemImage: "stop.fill")
+                Label("Pause", systemImage: "pause.fill")
             }
             .disabled(manager.selectedTorrentIDs.isEmpty)
-            .help("Stop selected torrents")
+            .help("Pause selected torrents")
 
             Button {
                 Task { await manager.removeSelected(deleteData: false) }
