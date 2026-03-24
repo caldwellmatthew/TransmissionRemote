@@ -6,16 +6,26 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		A0000001 /* TransmissionOpener.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransmissionOpener.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A0000010 /* Exceptions for "TransmissionOpener" folder in "TransmissionOpener" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A0000006 /* TransmissionOpener */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A0000002 /* TransmissionOpener */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A0000010 /* Exceptions for "TransmissionOpener" folder in "TransmissionOpener" target */,
+			);
 			path = TransmissionOpener;
 			sourceTree = "<group>";
 		};
@@ -328,7 +338,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = A0000009 /* Project object */;
 }
