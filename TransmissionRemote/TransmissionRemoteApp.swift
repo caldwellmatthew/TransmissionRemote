@@ -1,6 +1,11 @@
 import SwiftUI
 import UserNotifications
 
+extension Notification.Name {
+    static let openTorrentFile = Notification.Name("openTorrentFile")
+    static let addTorrentLink = Notification.Name("addTorrentLink")
+}
+
 @main
 struct TransmissionRemoteApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
@@ -13,6 +18,17 @@ struct TransmissionRemoteApp: App {
         }
         .defaultSize(width: 800, height: 500)
         .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("Open Torrent File...") {
+                    NotificationCenter.default.post(name: .openTorrentFile, object: nil)
+                }
+                .keyboardShortcut("o")
+
+                Button("Add Magnet or URL...") {
+                    NotificationCenter.default.post(name: .addTorrentLink, object: nil)
+                }
+                .keyboardShortcut("l")
+            }
             CommandGroup(after: .toolbar) {
                 Button("Reset Columns to Default") {
                     UserDefaults.standard.removeObject(forKey: "torrentTableColumns")

@@ -6,6 +6,10 @@ struct TorrentListView: View {
     @AppStorage("torrentTableColumns") private var columnCustomization: TableColumnCustomization<Torrent>
     @AppStorage("sortColumn") private var sortColumn = "name"
     @AppStorage("sortAscending") private var sortAscending = true
+    @State private var showingAddURL = false
+    @State private var showingFileImporter = false
+    @State private var addURLText = ""
+    @State private var addError: String?
 
     init() {
         let column = UserDefaults.standard.string(forKey: "sortColumn") ?? "name"
@@ -61,6 +65,53 @@ struct TorrentListView: View {
                 sortColumn = Self.columnName(for: first)
                 sortAscending = first.order == .forward
             }
+        }
+        .sheet(isPresented: $showingAddURL) {
+            AddURLSheet(urlText: $addURLText) { url in
+                Task {
+                    do {
+                        _ = try await manager.addTorrent(url: url)
+                    } catch {
+                        addError = error.localizedDescription
+                    }
+                }
+            }
+        }
+        .fileImporter(
+            isPresented: $showingFileImporter,
+            allowedContentTypes: [.init(filenameExtension: "torrent")!],
+            allowsMultipleSelection: true
+        ) { result in
+            guard case .success(let urls) = result else { return }
+            for url in urls {
+                Task { try? await manager.addTorrent(fileURL: url) }
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            for provider in providers {
+                _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                    guard let url, url.pathExtension.lowercased() == "torrent" else { return }
+                    Task { @MainActor in
+                        try? await manager.addTorrent(fileURL: url)
+                    }
+                }
+            }
+            return true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openTorrentFile)) { _ in
+            showingFileImporter = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .addTorrentLink)) { _ in
+            addURLText = ""
+            showingAddURL = true
+        }
+        .alert("Failed to Add Torrent", isPresented: Binding(
+            get: { addError != nil },
+            set: { if !$0 { addError = nil } }
+        )) {
+            Button("OK") { addError = nil }
+        } message: {
+            Text(addError ?? "")
         }
     }
 
@@ -454,6 +505,19 @@ struct TorrentListView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
+            Menu {
+                Button("Open File...") {
+                    showingFileImporter = true
+                }
+                Button("Add Magnet or URL...") {
+                    addURLText = ""
+                    showingAddURL = true
+                }
+            } label: {
+                Label("Add", systemImage: "plus")
+            }
+            .help("Add torrent")
+
             Button {
                 Task { await manager.startSelected() }
             } label: {
@@ -544,5 +608,39 @@ struct TorrentListView: View {
         case \Torrent.addedDate:    "addedDate"
         default:                    "name"
         }
+    }
+}
+
+private struct AddURLSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var urlText: String
+    var onAdd: (String) -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Add Torrent")
+                .font(.headline)
+
+            TextField("Magnet link or URL", text: $urlText)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 400)
+                .onSubmit { addAndDismiss() }
+
+            HStack {
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Add") { addAndDismiss() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding()
+    }
+
+    private func addAndDismiss() {
+        let trimmed = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        onAdd(trimmed)
+        dismiss()
     }
 }
