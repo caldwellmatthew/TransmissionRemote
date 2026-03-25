@@ -53,124 +53,99 @@ private struct InfoTab: View {
     let torrent: Torrent
 
     var body: some View {
-        ScrollView {
-            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
-                section("General") {
-                    row("Name", torrent.name)
-                    row("Status", torrent.status.label)
-                    row("Progress", "\(Int(torrent.percentDone * 100))%")
-                    row("Size", formatBytes(torrent.totalSize))
-                    if let sizeWhenDone = torrent.sizeWhenDone {
-                        row("Size When Done", formatBytes(sizeWhenDone))
-                    }
-                    if let uploaded = torrent.uploadedEver {
-                        row("Uploaded", formatBytes(uploaded))
-                    }
-                    row("Ratio", torrent.uploadRatio >= 0 ? String(format: "%.2f", torrent.uploadRatio) : "—")
-                    if let priority = torrent.bandwidthPriority {
-                        row("Priority", formatPriority(priority))
+        Form {
+            Section("Name") {
+                Text(torrent.name)
+                    .textSelection(.enabled)
+            }
+
+            Section("General") {
+                LabeledContent("Status", value: torrent.status.label)
+                LabeledContent("Progress", value: "\(Int(torrent.percentDone * 100))%")
+                LabeledContent("Size", value: formatBytes(torrent.totalSize))
+                if let sizeWhenDone = torrent.sizeWhenDone {
+                    LabeledContent("Size When Done", value: formatBytes(sizeWhenDone))
+                }
+                if let uploaded = torrent.uploadedEver {
+                    LabeledContent("Uploaded", value: formatBytes(uploaded))
+                }
+                LabeledContent("Ratio", value: torrent.uploadRatio >= 0 ? String(format: "%.2f", torrent.uploadRatio) : "—")
+                if let priority = torrent.bandwidthPriority {
+                    LabeledContent("Priority", value: formatPriority(priority))
+                }
+            }
+
+            Section("Transfer") {
+                LabeledContent("Download", value: formatRate(torrent.rateDownload, showZero: true))
+                LabeledContent("Upload", value: formatRate(torrent.rateUpload, showZero: true))
+                if torrent.eta > 0 {
+                    LabeledContent("ETA", value: formatETA(torrent.eta))
+                }
+                LabeledContent("Peers", value: "\(torrent.peersConnected)")
+                if let sending = torrent.peersSendingToUs {
+                    LabeledContent("Seeds → Us", value: "\(sending)")
+                }
+                if let getting = torrent.peersGettingFromUs {
+                    LabeledContent("Us → Peers", value: "\(getting)")
+                }
+            }
+
+            Section("Time") {
+                LabeledContent("Added", value: formatDate(torrent.addedDate))
+                if torrent.doneDate > 0 {
+                    LabeledContent("Completed", value: formatDate(torrent.doneDate))
+                }
+                if let activity = torrent.activityDate, activity > 0 {
+                    LabeledContent("Last Active", value: formatDate(activity))
+                }
+                if let dl = torrent.secondsDownloading, dl > 0 {
+                    LabeledContent("Time Downloading", value: formatDuration(dl))
+                }
+                if let seed = torrent.secondsSeeding, seed > 0 {
+                    LabeledContent("Time Seeding", value: formatDuration(seed))
+                }
+            }
+
+            Section("Storage") {
+                LabeledContent("Location", value: torrent.downloadDir)
+                if let hash = torrent.hashString {
+                    LabeledContent("Hash") {
+                        Text(hash).textSelection(.enabled).monospaced()
                     }
                 }
-
-                Divider()
-
-                section("Transfer") {
-                    row("Download", formatRate(torrent.rateDownload, showZero: true))
-                    row("Upload", formatRate(torrent.rateUpload, showZero: true))
-                    if torrent.eta > 0 { row("ETA", formatETA(torrent.eta)) }
-                    row("Peers", "\(torrent.peersConnected)")
-                    if let sending = torrent.peersSendingToUs {
-                        row("Seeds → Us", "\(sending)")
-                    }
-                    if let getting = torrent.peersGettingFromUs {
-                        row("Us → Peers", "\(getting)")
-                    }
+                if let pieces = torrent.pieceCount, let size = torrent.pieceSize {
+                    LabeledContent("Pieces", value: "\(pieces) × \(formatBytes(size))")
                 }
-
-                Divider()
-
-                section("Time") {
-                    row("Added", formatDate(torrent.addedDate))
-                    if torrent.doneDate > 0 { row("Completed", formatDate(torrent.doneDate)) }
-                    if let activity = torrent.activityDate, activity > 0 {
-                        row("Last Active", formatDate(activity))
-                    }
-                    if let dl = torrent.secondsDownloading, dl > 0 {
-                        row("Time Downloading", formatDuration(dl))
-                    }
-                    if let seed = torrent.secondsSeeding, seed > 0 {
-                        row("Time Seeding", formatDuration(seed))
-                    }
+                if let files = torrent.fileCount {
+                    LabeledContent("Files", value: "\(files)")
                 }
+            }
 
-                Divider()
-
-                section("Storage") {
-                    row("Location", torrent.downloadDir)
-                    if let hash = torrent.hashString { row("Hash", hash) }
-                    if let pieces = torrent.pieceCount, let size = torrent.pieceSize {
-                        row("Pieces", "\(pieces) × \(formatBytes(size))")
+            if torrent.comment != nil || torrent.creator != nil || !torrent.labels.isEmpty {
+                Section("Metadata") {
+                    if let comment = torrent.comment, !comment.isEmpty {
+                        LabeledContent("Comment", value: comment)
                     }
-                    if let files = torrent.fileCount { row("Files", "\(files)") }
-                }
-
-                if torrent.comment != nil || torrent.creator != nil || !torrent.labels.isEmpty {
-                    Divider()
-
-                    section("Metadata") {
-                        if let comment = torrent.comment, !comment.isEmpty {
-                            row("Comment", comment)
-                        }
-                        if let creator = torrent.creator, !creator.isEmpty {
-                            row("Creator", creator)
-                        }
-                        if !torrent.labels.isEmpty {
-                            row("Labels", torrent.labels.joined(separator: ", "))
-                        }
+                    if let creator = torrent.creator, !creator.isEmpty {
+                        LabeledContent("Creator", value: creator)
                     }
-                }
-
-                if torrent.error != 0 {
-                    Divider()
-
-                    section("Error") {
-                        GridRow {
-                            Text("Message")
-                                .foregroundStyle(.secondary)
-                                .gridColumnAlignment(.trailing)
-                            Text(torrent.errorString)
-                                .foregroundStyle(.red)
-                                .gridColumnAlignment(.leading)
-                                .textSelection(.enabled)
-                        }
+                    if !torrent.labels.isEmpty {
+                        LabeledContent("Labels", value: torrent.labels.joined(separator: ", "))
                     }
                 }
             }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
 
-    @ViewBuilder
-    private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
-        GridRow {
-            Text(title)
-                .font(.headline)
-                .gridCellColumns(2)
-                .padding(.top, 4)
+            if torrent.error != 0 {
+                Section("Error") {
+                    LabeledContent("Message") {
+                        Text(torrent.errorString)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                    }
+                }
+            }
         }
-        content()
-    }
-
-    private func row(_ label: String, _ value: String) -> some View {
-        GridRow {
-            Text(label)
-                .foregroundStyle(.secondary)
-                .gridColumnAlignment(.trailing)
-            Text(value)
-                .gridColumnAlignment(.leading)
-                .textSelection(.enabled)
-        }
+        .formStyle(.grouped)
     }
 }
 
