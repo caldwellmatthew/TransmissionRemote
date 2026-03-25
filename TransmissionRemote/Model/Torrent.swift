@@ -126,7 +126,8 @@ struct TorrentTrackerStat: Decodable, Sendable, Hashable, Identifiable {
     let leecherCount: Int
 }
 
-struct TorrentPeer: Decodable, Sendable, Hashable {
+struct TorrentPeer: Decodable, Sendable, Hashable, Identifiable {
+    var id: String { "\(address):\(port)" }
     let address: String
     let clientName: String
     let flagStr: String

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TorrentListView: View {
     @Environment(TorrentManager.self) private var manager
+    @Environment(\.openWindow) private var openWindow
     @State private var sortOrder: [KeyPathComparator<Torrent>]
     @AppStorage("torrentTableColumns") private var columnCustomization: TableColumnCustomization<Torrent>
     @AppStorage("sortColumn") private var sortColumn = "name"
@@ -104,6 +105,11 @@ struct TorrentListView: View {
         .onReceive(NotificationCenter.default.publisher(for: .addTorrentLink)) { notification in
             let link = (notification.object as? String) ?? ""
             pendingAddSource = .link(link)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showTorrentInfo)) { _ in
+            if manager.selectedTorrentIDs.count == 1, let id = manager.selectedTorrentIDs.first {
+                openWindow(id: "torrent-detail", value: id)
+            }
         }
         .alert("Failed to Add Torrent", isPresented: Binding(
             get: { addError != nil },
@@ -500,6 +506,13 @@ struct TorrentListView: View {
         .contextMenu(forSelectionType: Torrent.ID.self) { ids in
             let selectedTorrents = sortedTorrents.filter { ids.contains($0.id) }
 
+            if selectedTorrents.count == 1, let id = selectedTorrents.first?.id {
+                Button("Get Info") {
+                    openWindow(id: "torrent-detail", value: id)
+                }
+                Divider()
+            }
+
             Button("Verify") {
                 manager.selectedTorrentIDs = ids
                 Task { await manager.verifySelected() }
@@ -526,6 +539,10 @@ struct TorrentListView: View {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(magnet, forType: .string)
                 }
+            }
+        } primaryAction: { ids in
+            if let id = ids.first, ids.count == 1 {
+                openWindow(id: "torrent-detail", value: id)
             }
         }
         .sheet(isPresented: $showingMoveSheet) {

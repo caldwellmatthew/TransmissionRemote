@@ -4,6 +4,7 @@ import UserNotifications
 extension Notification.Name {
     static let openTorrentFile = Notification.Name("openTorrentFile")
     static let addTorrentLink = Notification.Name("addTorrentLink")
+    static let showTorrentInfo = Notification.Name("showTorrentInfo")
 }
 
 @main
@@ -35,7 +36,21 @@ struct TransmissionRemoteApp: App {
                     UserDefaults.standard.removeObject(forKey: "torrentTableColumns")
                 }
             }
+            CommandGroup(after: .sidebar) {
+                Button("Get Info") {
+                    NotificationCenter.default.post(name: .showTorrentInfo, object: nil)
+                }
+                .keyboardShortcut("i")
+            }
         }
+
+        WindowGroup("Torrent Info", id: "torrent-detail", for: Int.self) { $torrentID in
+            if let torrentID {
+                TorrentDetailView(torrentID: torrentID)
+                    .environment(torrentManager)
+            }
+        }
+        .defaultSize(width: 600, height: 500)
 
         MenuBarExtra("Transmission Remote", systemImage: "arrow.up.doc", isInserted: $showMenuBarExtra) {
             if let stats = torrentManager.sessionStats {

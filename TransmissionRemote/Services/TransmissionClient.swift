@@ -42,6 +42,23 @@ actor TransmissionClient {
         return response.arguments.torrents
     }
 
+    func getTorrentDetail(id: Int) async throws -> Torrent? {
+        let body: [String: Any] = [
+            "method": "torrent-get",
+            "arguments": [
+                "ids": [id],
+                "fields": Torrent.detailFields,
+            ] as [String: Any],
+        ]
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        let responseData = try await callRPCRaw(body: jsonData)
+        let response = try JSONDecoder().decode(TorrentGetResponse.self, from: responseData)
+        guard response.result == "success" else {
+            throw TransmissionError.rpcError(response.result)
+        }
+        return response.arguments.torrents.first
+    }
+
     // MARK: - Session Stats
 
     func getSessionStats() async throws -> SessionStats {

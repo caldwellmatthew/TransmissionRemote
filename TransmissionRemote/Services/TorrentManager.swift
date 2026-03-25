@@ -126,6 +126,10 @@ final class TorrentManager {
         startPolling()
     }
 
+    func getTorrentDetail(id: Int) async -> Torrent? {
+        try? await client.getTorrentDetail(id: id)
+    }
+
     // MARK: - Session
 
     func getDefaultDownloadDir() async -> String {
