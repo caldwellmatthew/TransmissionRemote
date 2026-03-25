@@ -6,6 +6,7 @@ struct SettingsView: View {
     @AppStorage("username") private var username = ""
     @AppStorage("password") private var password = ""
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
+    @AppStorage("notifyOnCompletion") private var notifyOnCompletion = true
 
     var body: some View {
         Form {
@@ -19,6 +20,10 @@ struct SettingsView: View {
                 Button("Connect") {
                     manager.reconnect()
                 }
+            }
+
+            Section("Notifications") {
+                Toggle("Notify when downloads complete", isOn: $notifyOnCompletion)
             }
 
             Section("General") {

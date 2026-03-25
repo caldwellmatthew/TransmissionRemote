@@ -13,6 +13,10 @@ struct TransmissionRemoteApp: App {
     @State private var torrentManager = TorrentManager()
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
+    init() {
+        UserDefaults.standard.register(defaults: ["notifyOnCompletion": true])
+    }
+
     var body: some Scene {
         Window("Transmission Remote", id: "main") {
             TorrentListView()

@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 @MainActor
 @Observable
@@ -15,6 +16,7 @@ final class TorrentManager {
     private var client: TransmissionClient
     private var pollTask: Task<Void, Never>?
     private let pollInterval: TimeInterval = 5.0
+    private var previousPercentDone: [Int: Double] = [:]
 
     enum ConnectionState {
         case disconnected, connecting, connected, error
@@ -109,14 +111,48 @@ final class TorrentManager {
         do {
             async let fetchedTorrents = client.getTorrents()
             async let fetchedStats = client.getSessionStats()
-            torrents = try await fetchedTorrents
+            let newTorrents = try await fetchedTorrents
             sessionStats = try await fetchedStats
+
+            if UserDefaults.standard.bool(forKey: "notifyOnCompletion") {
+                checkForCompletions(newTorrents)
+            }
+
+            // Update tracking state for next poll
+            previousPercentDone = Dictionary(uniqueKeysWithValues: newTorrents.map { ($0.id, $0.percentDone) })
+            torrents = newTorrents
             connectionState = .connected
             errorMessage = nil
         } catch {
             connectionState = .error
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func checkForCompletions(_ newTorrents: [Torrent]) {
+        // Only check if we have previous state (skip first poll)
+        guard !previousPercentDone.isEmpty else { return }
+
+        for torrent in newTorrents {
+            let wasDone = previousPercentDone[torrent.id].map { $0 >= 1.0 } ?? false
+            if torrent.percentDone >= 1.0 && !wasDone {
+                postCompletionNotification(for: torrent)
+            }
+        }
+    }
+
+    private nonisolated func postCompletionNotification(for torrent: Torrent) {
+        let content = UNMutableNotificationContent()
+        content.title = "Download Complete"
+        content.body = torrent.name
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "torrent-complete-\(torrent.id)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     func reconnect() {
