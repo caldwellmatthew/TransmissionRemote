@@ -165,6 +165,38 @@ actor TransmissionClient {
         }
     }
 
+    // MARK: - Torrent Set
+
+    func setFilesWanted(id: Int, fileIndices: [Int]) async throws {
+        try await setTorrent(id: id, arguments: ["files-wanted": fileIndices])
+    }
+
+    func setFilesUnwanted(id: Int, fileIndices: [Int]) async throws {
+        try await setTorrent(id: id, arguments: ["files-unwanted": fileIndices])
+    }
+
+    func setFilePriority(id: Int, fileIndices: [Int], priority: Int) async throws {
+        let key: String
+        switch priority {
+        case -1: key = "priority-low"
+        case 1:  key = "priority-high"
+        default: key = "priority-normal"
+        }
+        try await setTorrent(id: id, arguments: [key: fileIndices])
+    }
+
+    private func setTorrent(id: Int, arguments: [String: Any]) async throws {
+        var args = arguments
+        args["ids"] = [id]
+        let body: [String: Any] = ["method": "torrent-set", "arguments": args]
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        let responseData = try await callRPCRaw(body: jsonData)
+        let response = try JSONDecoder().decode(SimpleResponse.self, from: responseData)
+        guard response.result == "success" else {
+            throw TransmissionError.rpcError(response.result)
+        }
+    }
+
     private func performAction(_ method: String, ids: [Int]) async throws {
         let body = RPCRequest(method: method, arguments: ["ids": ids])
         let data = try await callRPC(body: body)

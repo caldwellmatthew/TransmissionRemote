@@ -221,6 +221,18 @@ final class TorrentManager {
         try? await client.reannounceTorrents(ids: ids)
     }
 
+    func setFileWanted(torrentID: Int, fileIndex: Int, wanted: Bool) async {
+        if wanted {
+            try? await client.setFilesWanted(id: torrentID, fileIndices: [fileIndex])
+        } else {
+            try? await client.setFilesUnwanted(id: torrentID, fileIndices: [fileIndex])
+        }
+    }
+
+    func setFilePriority(torrentID: Int, fileIndex: Int, priority: Int) async {
+        try? await client.setFilePriority(id: torrentID, fileIndices: [fileIndex], priority: priority)
+    }
+
     func setLocation(ids: [Int], location: String, move: Bool) async {
         try? await client.setLocation(ids: ids, location: location, move: move)
         await refresh()

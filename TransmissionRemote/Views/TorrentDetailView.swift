@@ -13,7 +13,7 @@ struct TorrentDetailView: View {
                     InfoTab(torrent: torrent)
                         .tabItem { Label("Info", systemImage: "info.circle") }
 
-                    FilesTab(torrent: torrent)
+                    FilesTab(torrent: torrent, torrentID: torrentID, onChanged: refresh)
                         .tabItem { Label("Files", systemImage: "doc.on.doc") }
 
                     TrackersTab(torrent: torrent)
@@ -162,6 +162,9 @@ private struct FileRow: Identifiable {
 
 private struct FilesTab: View {
     let torrent: Torrent
+    let torrentID: Int
+    var onChanged: () async -> Void
+    @Environment(TorrentManager.self) private var manager
 
     private var fileRows: [FileRow] {
         guard let files = torrent.files else { return [] }
@@ -209,14 +212,40 @@ private struct FilesTab: View {
             }
             .width(min: 80, ideal: 120)
 
-            TableColumn("Wanted") { row in
-                Image(systemName: row.wanted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(row.wanted ? .green : .secondary)
+            TableColumn("Download") { row in
+                HStack {
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { row.wanted },
+                        set: { newValue in
+                            Task {
+                                await manager.setFileWanted(torrentID: torrentID, fileIndex: row.id, wanted: newValue)
+                                await onChanged()
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    Spacer()
+                }
             }
             .width(min: 40, ideal: 55)
 
             TableColumn("Priority") { row in
-                Text(formatPriority(row.priority))
+                Picker("", selection: Binding(
+                    get: { row.priority },
+                    set: { newValue in
+                        Task {
+                            await manager.setFilePriority(torrentID: torrentID, fileIndex: row.id, priority: newValue)
+                            await onChanged()
+                        }
+                    }
+                )) {
+                    Text("↓").tag(-1)
+                    Text("—").tag(0)
+                    Text("↑").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
             .width(min: 50, ideal: 70)
         } rows: {
