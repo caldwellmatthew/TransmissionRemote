@@ -5,6 +5,7 @@ struct TorrentDetailView: View {
     @Environment(TorrentManager.self) private var manager
     @State private var torrent: Torrent?
     @State private var pollTask: Task<Void, Never>?
+    @State private var loadFailed = false
 
     var body: some View {
         Group {
@@ -23,6 +24,12 @@ struct TorrentDetailView: View {
                         .tabItem { Label("Peers", systemImage: "person.2") }
                 }
                 .navigationTitle(torrent.name)
+            } else if loadFailed {
+                ContentUnavailableView(
+                    "Unable to Load Torrent",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text("Could not fetch torrent details from the server.")
+                )
             } else {
                 ProgressView()
             }
@@ -43,7 +50,13 @@ struct TorrentDetailView: View {
     }
 
     private func refresh() async {
-        torrent = await manager.getTorrentDetail(id: torrentID)
+        let detail = await manager.getTorrentDetail(id: torrentID)
+        if let detail {
+            torrent = detail
+            loadFailed = false
+        } else if torrent == nil {
+            loadFailed = true
+        }
     }
 }
 
@@ -165,6 +178,7 @@ private struct FilesTab: View {
     let torrentID: Int
     var onChanged: () async -> Void
     @Environment(TorrentManager.self) private var manager
+    @State private var actionError: String?
 
     private var fileRows: [FileRow] {
         guard let files = torrent.files else { return [] }
@@ -219,7 +233,11 @@ private struct FilesTab: View {
                         get: { row.wanted },
                         set: { newValue in
                             Task {
-                                await manager.setFileWanted(torrentID: torrentID, fileIndex: row.id, wanted: newValue)
+                                do {
+                                    try await manager.setFileWanted(torrentID: torrentID, fileIndex: row.id, wanted: newValue)
+                                } catch {
+                                    actionError = error.localizedDescription
+                                }
                                 await onChanged()
                             }
                         }
@@ -235,7 +253,11 @@ private struct FilesTab: View {
                     get: { row.priority },
                     set: { newValue in
                         Task {
-                            await manager.setFilePriority(torrentID: torrentID, fileIndex: row.id, priority: newValue)
+                            do {
+                                try await manager.setFilePriority(torrentID: torrentID, fileIndex: row.id, priority: newValue)
+                            } catch {
+                                actionError = error.localizedDescription
+                            }
                             await onChanged()
                         }
                     }
@@ -254,6 +276,14 @@ private struct FilesTab: View {
             }
         }
         .scrollIndicators(.hidden)
+        .alert("Error", isPresented: Binding(
+            get: { actionError != nil },
+            set: { if !$0 { actionError = nil } }
+        )) {
+            Button("OK") { actionError = nil }
+        } message: {
+            Text(actionError ?? "")
+        }
     }
 }
 

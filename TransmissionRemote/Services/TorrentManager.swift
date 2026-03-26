@@ -8,6 +8,7 @@ final class TorrentManager {
     private(set) var sessionStats: SessionStats?
     private(set) var connectionState: ConnectionState = .disconnected
     private(set) var errorMessage: String?
+    var actionError: String?
 
     var selectedTorrentIDs: Set<Int> = []
     var searchText: String = ""
@@ -169,7 +170,16 @@ final class TorrentManager {
     // MARK: - Session
 
     func getDefaultDownloadDir() async -> String {
-        (try? await client.getSession().downloadDir) ?? ""
+        do {
+            return try await client.getSession().downloadDir
+        } catch is CancellationError {
+            return ""
+        } catch let error as URLError where error.code == .cancelled {
+            return ""
+        } catch {
+            actionError = error.localizedDescription
+            return ""
+        }
     }
 
     // MARK: - Actions
@@ -189,21 +199,21 @@ final class TorrentManager {
     func startSelected() async {
         let ids = Array(selectedTorrentIDs)
         guard !ids.isEmpty else { return }
-        try? await client.startTorrents(ids: ids)
+        await performAction { try await self.client.startTorrents(ids: ids) }
         await refresh()
     }
 
     func stopSelected() async {
         let ids = Array(selectedTorrentIDs)
         guard !ids.isEmpty else { return }
-        try? await client.stopTorrents(ids: ids)
+        await performAction { try await self.client.stopTorrents(ids: ids) }
         await refresh()
     }
 
     func removeSelected(deleteData: Bool) async {
         let ids = Array(selectedTorrentIDs)
         guard !ids.isEmpty else { return }
-        try? await client.removeTorrents(ids: ids, deleteLocalData: deleteData)
+        await performAction { try await self.client.removeTorrents(ids: ids, deleteLocalData: deleteData) }
         selectedTorrentIDs.removeAll()
         await refresh()
     }
@@ -211,30 +221,42 @@ final class TorrentManager {
     func verifySelected() async {
         let ids = Array(selectedTorrentIDs)
         guard !ids.isEmpty else { return }
-        try? await client.verifyTorrents(ids: ids)
+        await performAction { try await self.client.verifyTorrents(ids: ids) }
         await refresh()
     }
 
     func reannounceSelected() async {
         let ids = Array(selectedTorrentIDs)
         guard !ids.isEmpty else { return }
-        try? await client.reannounceTorrents(ids: ids)
+        await performAction { try await self.client.reannounceTorrents(ids: ids) }
     }
 
-    func setFileWanted(torrentID: Int, fileIndex: Int, wanted: Bool) async {
+    func setFileWanted(torrentID: Int, fileIndex: Int, wanted: Bool) async throws {
         if wanted {
-            try? await client.setFilesWanted(id: torrentID, fileIndices: [fileIndex])
+            try await client.setFilesWanted(id: torrentID, fileIndices: [fileIndex])
         } else {
-            try? await client.setFilesUnwanted(id: torrentID, fileIndices: [fileIndex])
+            try await client.setFilesUnwanted(id: torrentID, fileIndices: [fileIndex])
         }
     }
 
-    func setFilePriority(torrentID: Int, fileIndex: Int, priority: Int) async {
-        try? await client.setFilePriority(id: torrentID, fileIndices: [fileIndex], priority: priority)
+    func setFilePriority(torrentID: Int, fileIndex: Int, priority: Int) async throws {
+        try await client.setFilePriority(id: torrentID, fileIndices: [fileIndex], priority: priority)
     }
 
     func setLocation(ids: [Int], location: String, move: Bool) async {
-        try? await client.setLocation(ids: ids, location: location, move: move)
+        await performAction { try await self.client.setLocation(ids: ids, location: location, move: move) }
         await refresh()
+    }
+
+    // MARK: - Private
+
+    private func performAction(_ operation: () async throws -> Void) async {
+        do {
+            try await operation()
+        } catch is CancellationError {
+        } catch let error as URLError where error.code == .cancelled {
+        } catch {
+            actionError = error.localizedDescription
+        }
     }
 }

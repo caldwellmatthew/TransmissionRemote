@@ -10,7 +10,6 @@ struct TorrentListView: View {
     @State private var showingAddSheet = false
     @State private var showingFileImporter = false
     @State private var pendingAddSource: AddTorrentSheet.Source?
-    @State private var addError: String?
     @State private var showingRemoveConfirmation = false
     @State private var showingMoveSheet = false
     @State private var moveLocation = ""
@@ -73,7 +72,7 @@ struct TorrentListView: View {
         }
         .sheet(item: $pendingAddSource) { source in
             AddTorrentSheet(source: source, manager: manager) { error in
-                if let error { addError = error }
+                if let error { manager.actionError = error }
             }
         }
         .fileImporter(
@@ -111,13 +110,13 @@ struct TorrentListView: View {
                 openWindow(id: "torrent-detail", value: id)
             }
         }
-        .alert("Failed to Add Torrent", isPresented: Binding(
-            get: { addError != nil },
-            set: { if !$0 { addError = nil } }
+        .alert("Error", isPresented: Binding(
+            get: { manager.actionError != nil },
+            set: { if !$0 { manager.actionError = nil } }
         )) {
-            Button("OK") { addError = nil }
+            Button("OK") { manager.actionError = nil }
         } message: {
-            Text(addError ?? "")
+            Text(manager.actionError ?? "")
         }
     }
 
