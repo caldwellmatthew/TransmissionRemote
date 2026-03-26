@@ -213,7 +213,7 @@ actor TransmissionClient {
         return try await callRPCRaw(body: jsonData)
     }
 
-    private func callRPCRaw(body: Data) async throws -> Data {
+    private func callRPCRaw(body: Data, retried: Bool = false) async throws -> Data {
         var req = URLRequest(url: endpoint)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -239,8 +239,11 @@ actor TransmissionClient {
             guard let newSessionId = http.value(forHTTPHeaderField: "X-Transmission-Session-Id") else {
                 throw TransmissionError.missingSessionId
             }
+            guard !retried else {
+                throw TransmissionError.missingSessionId
+            }
             sessionId = newSessionId
-            return try await callRPCRaw(body: body)
+            return try await callRPCRaw(body: body, retried: true)
         }
 
         guard (200..<300).contains(http.statusCode) else {
