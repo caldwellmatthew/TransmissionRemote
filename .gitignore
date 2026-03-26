@@ -4,5 +4,4 @@ build/
 DerivedData/
 *.moved-aside
 .DS_Store
-.run.sh
 .claude/
