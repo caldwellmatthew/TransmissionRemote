@@ -781,11 +781,12 @@ private struct AddTorrentSheet: View {
     }
 
     private var options: TorrentAddOptions {
-        TorrentAddOptions(
+        let labels = labelsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return TorrentAddOptions(
             downloadDir: downloadDir.isEmpty ? nil : downloadDir,
-            paused: startPaused,
-            bandwidthPriority: priority,
-            labels: labelsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            paused: startPaused ? true : nil,
+            bandwidthPriority: priority != 0 ? priority : nil,
+            labels: labels.isEmpty ? nil : labels
         )
     }
 

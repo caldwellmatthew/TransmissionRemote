@@ -32,7 +32,7 @@ actor TransmissionClient {
     func getTorrents(fields: [String] = Torrent.listFields) async throws -> [Torrent] {
         let body = RPCRequest(
             method: "torrent-get",
-            arguments: ["fields": fields]
+            arguments: TorrentGetArgs(fields: fields)
         )
         let data = try await callRPC(body: body)
         let response = try JSONDecoder().decode(TorrentGetResponse.self, from: data)
@@ -43,16 +43,12 @@ actor TransmissionClient {
     }
 
     func getTorrentDetail(id: Int) async throws -> Torrent? {
-        let body: [String: Any] = [
-            "method": "torrent-get",
-            "arguments": [
-                "ids": [id],
-                "fields": Torrent.detailFields,
-            ] as [String: Any],
-        ]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-        let responseData = try await callRPCRaw(body: jsonData)
-        let response = try JSONDecoder().decode(TorrentGetResponse.self, from: responseData)
+        let body = RPCRequest(
+            method: "torrent-get",
+            arguments: TorrentGetArgs(ids: [id], fields: Torrent.detailFields)
+        )
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(TorrentGetResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -89,23 +85,22 @@ actor TransmissionClient {
     // MARK: - Add Torrent
 
     func addTorrent(fileURL: URL, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
-        let data = try Data(contentsOf: fileURL)
-        var args = options.asArguments()
-        args["metainfo"] = data.base64EncodedString()
+        let fileData = try Data(contentsOf: fileURL)
+        var args = options
+        args.metainfo = fileData.base64EncodedString()
         return try await addTorrent(arguments: args)
     }
 
     func addTorrent(url: String, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
-        var args = options.asArguments()
-        args["filename"] = url
+        var args = options
+        args.filename = url
         return try await addTorrent(arguments: args)
     }
 
-    private func addTorrent(arguments: [String: Any]) async throws -> String {
-        let body: [String: Any] = ["method": "torrent-add", "arguments": arguments]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-        let responseData = try await callRPCRaw(body: jsonData)
-        let response = try JSONDecoder().decode(TorrentAddResponse.self, from: responseData)
+    private func addTorrent(arguments: TorrentAddOptions) async throws -> String {
+        let body = RPCRequest(method: "torrent-add", arguments: arguments)
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(TorrentAddResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -125,16 +120,12 @@ actor TransmissionClient {
     }
 
     func removeTorrents(ids: [Int], deleteLocalData: Bool = false) async throws {
-        let body: [String: Any] = [
-            "method": "torrent-remove",
-            "arguments": [
-                "ids": ids,
-                "delete-local-data": deleteLocalData,
-            ] as [String: Any],
-        ]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-        let responseData = try await callRPCRaw(body: jsonData)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: responseData)
+        let body = RPCRequest(
+            method: "torrent-remove",
+            arguments: TorrentRemoveArgs(ids: ids, deleteLocalData: deleteLocalData)
+        )
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -149,17 +140,12 @@ actor TransmissionClient {
     }
 
     func setLocation(ids: [Int], location: String, move: Bool) async throws {
-        let body: [String: Any] = [
-            "method": "torrent-set-location",
-            "arguments": [
-                "ids": ids,
-                "location": location,
-                "move": move,
-            ] as [String: Any],
-        ]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-        let responseData = try await callRPCRaw(body: jsonData)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: responseData)
+        let body = RPCRequest(
+            method: "torrent-set-location",
+            arguments: SetLocationArgs(ids: ids, location: location, move: move)
+        )
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -168,30 +154,31 @@ actor TransmissionClient {
     // MARK: - Torrent Set
 
     func setFilesWanted(id: Int, fileIndices: [Int]) async throws {
-        try await setTorrent(id: id, arguments: ["files-wanted": fileIndices])
+        var args = TorrentSetArgs(ids: [id])
+        args.filesWanted = fileIndices
+        try await setTorrent(args)
     }
 
     func setFilesUnwanted(id: Int, fileIndices: [Int]) async throws {
-        try await setTorrent(id: id, arguments: ["files-unwanted": fileIndices])
+        var args = TorrentSetArgs(ids: [id])
+        args.filesUnwanted = fileIndices
+        try await setTorrent(args)
     }
 
     func setFilePriority(id: Int, fileIndices: [Int], priority: Int) async throws {
-        let key: String
+        var args = TorrentSetArgs(ids: [id])
         switch priority {
-        case -1: key = "priority-low"
-        case 1:  key = "priority-high"
-        default: key = "priority-normal"
+        case -1: args.priorityLow = fileIndices
+        case 1:  args.priorityHigh = fileIndices
+        default: args.priorityNormal = fileIndices
         }
-        try await setTorrent(id: id, arguments: [key: fileIndices])
+        try await setTorrent(args)
     }
 
-    private func setTorrent(id: Int, arguments: [String: Any]) async throws {
-        var args = arguments
-        args["ids"] = [id]
-        let body: [String: Any] = ["method": "torrent-set", "arguments": args]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-        let responseData = try await callRPCRaw(body: jsonData)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: responseData)
+    private func setTorrent(_ arguments: TorrentSetArgs) async throws {
+        let body = RPCRequest(method: "torrent-set", arguments: arguments)
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -210,10 +197,10 @@ actor TransmissionClient {
 
     private func callRPC<T: Encodable & Sendable>(body: T) async throws -> Data {
         let jsonData = try JSONEncoder().encode(body)
-        return try await callRPCRaw(body: jsonData)
+        return try await sendRequest(body: jsonData)
     }
 
-    private func callRPCRaw(body: Data, retried: Bool = false) async throws -> Data {
+    private func sendRequest(body: Data, retried: Bool = false) async throws -> Data {
         var req = URLRequest(url: endpoint)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -243,7 +230,7 @@ actor TransmissionClient {
                 throw TransmissionError.missingSessionId
             }
             sessionId = newSessionId
-            return try await callRPCRaw(body: body, retried: true)
+            return try await sendRequest(body: body, retried: true)
         }
 
         guard (200..<300).contains(http.statusCode) else {
@@ -255,11 +242,66 @@ actor TransmissionClient {
     }
 }
 
-// MARK: - Request Types
+// MARK: - Request / Argument Types
 
 private struct RPCRequest<T: Encodable & Sendable>: Encodable, Sendable {
     let method: String
     let arguments: T?
+}
+
+private struct TorrentGetArgs: Encodable, Sendable {
+    var ids: [Int]?
+    let fields: [String]
+}
+
+private struct TorrentRemoveArgs: Encodable, Sendable {
+    let ids: [Int]
+    let deleteLocalData: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case ids
+        case deleteLocalData = "delete-local-data"
+    }
+}
+
+private struct SetLocationArgs: Encodable, Sendable {
+    let ids: [Int]
+    let location: String
+    let move: Bool
+}
+
+private struct TorrentSetArgs: Encodable, Sendable {
+    let ids: [Int]
+    var filesWanted: [Int]?
+    var filesUnwanted: [Int]?
+    var priorityLow: [Int]?
+    var priorityNormal: [Int]?
+    var priorityHigh: [Int]?
+
+    enum CodingKeys: String, CodingKey {
+        case ids
+        case filesWanted = "files-wanted"
+        case filesUnwanted = "files-unwanted"
+        case priorityLow = "priority-low"
+        case priorityNormal = "priority-normal"
+        case priorityHigh = "priority-high"
+    }
+}
+
+struct TorrentAddOptions: Encodable, Sendable {
+    var metainfo: String?
+    var filename: String?
+    var downloadDir: String?
+    var paused: Bool?
+    var bandwidthPriority: Int?
+    var labels: [String]?
+    var peerLimit: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case metainfo, filename, paused, bandwidthPriority, labels
+        case downloadDir = "download-dir"
+        case peerLimit = "peer-limit"
+    }
 }
 
 // MARK: - Response Types
@@ -287,24 +329,6 @@ struct SessionInfo: Decodable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case downloadDir = "download-dir"
-    }
-}
-
-struct TorrentAddOptions: Sendable {
-    var downloadDir: String?
-    var paused: Bool = false
-    var bandwidthPriority: Int = 0
-    var labels: [String] = []
-    var peerLimit: Int?
-
-    func asArguments() -> [String: Any] {
-        var args: [String: Any] = [:]
-        if let dir = downloadDir, !dir.isEmpty { args["download-dir"] = dir }
-        if paused { args["paused"] = true }
-        if bandwidthPriority != 0 { args["bandwidthPriority"] = bandwidthPriority }
-        if !labels.isEmpty { args["labels"] = labels }
-        if let limit = peerLimit { args["peer-limit"] = limit }
-        return args
     }
 }
 
