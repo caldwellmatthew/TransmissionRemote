@@ -29,7 +29,6 @@ struct TorrentListView: View {
     @AppStorage("torrentTableColumns") private var columnCustomization: TableColumnCustomization<Torrent>
     @AppStorage("sortColumn") private var sortColumn = "name"
     @AppStorage("sortAscending") private var sortAscending = true
-    @State private var showingAddSheet = false
     @State private var showingFileImporter = false
     @State private var pendingAddSource: AddTorrentSheet.Source?
     @State private var showingRemoveConfirmation = false
