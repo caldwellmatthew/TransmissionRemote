@@ -1,5 +1,27 @@
 import SwiftUI
 
+/// Invisible NSView that finds its enclosing NSToolbarItem and sets isBordered = false.
+/// Use as .background(ToolbarItemBorderRemover()) on a toolbar item's content.
+private struct ToolbarItemBorderRemover: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { disableBorder(from: view) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private func disableBorder(from view: NSView) {
+        guard let toolbar = view.window?.toolbar else { return }
+        for item in toolbar.items where item.isBordered {
+            if let itemView = item.view, view.isDescendant(of: itemView) {
+                item.isBordered = false
+                return
+            }
+        }
+    }
+}
+
 struct TorrentListView: View {
     @Environment(TorrentManager.self) private var manager
     @Environment(\.openWindow) private var openWindow
@@ -566,8 +588,9 @@ struct TorrentListView: View {
             .labelStyle(.titleAndIcon)
         }
 
+
         // Center: speeds
-        ToolbarItem(placement: .status) {
+        ToolbarItem(placement: .principal) {
             if manager.connectionState == .connected {
                 HStack(spacing: 14) {
                     HStack(spacing: 3) {
@@ -585,6 +608,7 @@ struct TorrentListView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .background(ToolbarItemBorderRemover())
             }
         }
 
