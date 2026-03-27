@@ -3,8 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(TorrentManager.self) private var manager
     @AppStorage("serverURL") private var serverURL = "http://localhost:9091"
-    @AppStorage("username") private var username = ""
-    @AppStorage("password") private var password = ""
+    @State private var username = KeychainHelper.load(account: "username") ?? ""
+    @State private var password = KeychainHelper.load(account: "password") ?? ""
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
     @AppStorage("notifyOnCompletion") private var notifyOnCompletion = true
     @AppStorage("pollInterval") private var pollInterval: Double = 5.0
@@ -32,6 +32,8 @@ struct SettingsView: View {
                 SecureField("Password", text: $password)
                     .textFieldStyle(.roundedBorder)
                 Button("Connect") {
+                    KeychainHelper.save(account: "username", value: username)
+                    KeychainHelper.save(account: "password", value: password)
                     manager.reconnect()
                 }
             }

@@ -22,8 +22,8 @@ actor TransmissionClient {
             : trimmed + "/transmission/rpc"
         let endpoint = URL(string: urlString)!
 
-        let username = UserDefaults.standard.string(forKey: "username")
-        let password = UserDefaults.standard.string(forKey: "password")
+        let username = KeychainHelper.load(account: "username")
+        let password = KeychainHelper.load(account: "password")
         return TransmissionClient(endpoint: endpoint, username: username, password: password)
     }
 
