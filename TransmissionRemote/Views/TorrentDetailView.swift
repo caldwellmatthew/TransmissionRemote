@@ -4,6 +4,7 @@ struct TorrentDetailView: View {
     let torrentID: Int
     @Environment(TorrentManager.self) private var manager
     @State private var torrent: Torrent?
+    @AppStorage("pollInterval") private var pollInterval: Double = 5.0
     @State private var pollTask: Task<Void, Never>?
     @State private var loadFailed = false
 
@@ -39,7 +40,7 @@ struct TorrentDetailView: View {
             await refresh()
             pollTask = Task {
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(5))
+                    try? await Task.sleep(for: .seconds(pollInterval))
                     await refresh()
                 }
             }

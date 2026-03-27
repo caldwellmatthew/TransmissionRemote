@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage("password") private var password = ""
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
     @AppStorage("notifyOnCompletion") private var notifyOnCompletion = true
+    @AppStorage("pollInterval") private var pollInterval: Double = 5.0
 
     var body: some View {
         Form {
@@ -22,12 +23,17 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Notifications") {
-                Toggle("Notify when downloads complete", isOn: $notifyOnCompletion)
-            }
-
             Section("General") {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Refresh interval")
+                    Spacer()
+                    TextField("", value: $pollInterval, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 60)
+                    Text("seconds")
+                }
                 Toggle("Show menu bar icon", isOn: $showMenuBarExtra)
+                Toggle("Notify when downloads complete", isOn: $notifyOnCompletion)
             }
         }
         .formStyle(.grouped)

@@ -1,6 +1,10 @@
 import Foundation
 import UserNotifications
 
+private extension Double {
+    var nonZero: Double? { self == 0 ? nil : self }
+}
+
 @MainActor
 @Observable
 final class TorrentManager {
@@ -16,8 +20,11 @@ final class TorrentManager {
 
     private var client: TransmissionClient
     private var pollTask: Task<Void, Never>?
-    private let pollInterval: TimeInterval = 5.0
     private var previousPercentDone: [Int: Double] = [:]
+
+    private var pollInterval: TimeInterval {
+        UserDefaults.standard.double(forKey: "pollInterval").nonZero ?? 5.0
+    }
 
     enum ConnectionState {
         case disconnected, connecting, connected, error
