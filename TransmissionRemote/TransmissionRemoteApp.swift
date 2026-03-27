@@ -67,6 +67,11 @@ struct TransmissionRemoteApp: App {
                 }
                 Divider()
             }
+            Toggle("Turtle Mode", isOn: Binding(
+                get: { torrentManager.isTurtleModeEnabled },
+                set: { _ in Task { await torrentManager.toggleTurtleMode() } }
+            ))
+            Divider()
             SettingsLink {
                 Text("Settings...")
             }

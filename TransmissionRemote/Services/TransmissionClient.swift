@@ -82,6 +82,36 @@ actor TransmissionClient {
         return response.arguments
     }
 
+    // MARK: - Session Settings
+
+    func getSessionSettings() async throws -> SessionSettings {
+        let body = RPCRequest(
+            method: "session-get",
+            arguments: ["fields": [
+                "speed-limit-down", "speed-limit-down-enabled",
+                "speed-limit-up", "speed-limit-up-enabled",
+                "alt-speed-down", "alt-speed-up", "alt-speed-enabled",
+                "alt-speed-time-enabled", "alt-speed-time-begin",
+                "alt-speed-time-end", "alt-speed-time-day",
+            ]] as [String: [String]]
+        )
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(SessionSettingsResponse.self, from: data)
+        guard response.result == "success" else {
+            throw TransmissionError.rpcError(response.result)
+        }
+        return response.arguments
+    }
+
+    func setSession(_ arguments: SessionSetArgs) async throws {
+        let body = RPCRequest(method: "session-set", arguments: arguments)
+        let data = try await callRPC(body: body)
+        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
+        guard response.result == "success" else {
+            throw TransmissionError.rpcError(response.result)
+        }
+    }
+
     // MARK: - Add Torrent
 
     func addTorrent(fileURL: URL, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
@@ -172,6 +202,16 @@ actor TransmissionClient {
         case 1:  args.priorityHigh = fileIndices
         default: args.priorityNormal = fileIndices
         }
+        try await setTorrent(args)
+    }
+
+    func setTorrentSpeedLimits(id: Int, downloadLimit: Int?, downloadLimited: Bool?,
+                               uploadLimit: Int?, uploadLimited: Bool?) async throws {
+        var args = TorrentSetArgs(ids: [id])
+        args.downloadLimit = downloadLimit
+        args.downloadLimited = downloadLimited
+        args.uploadLimit = uploadLimit
+        args.uploadLimited = uploadLimited
         try await setTorrent(args)
     }
 
@@ -277,6 +317,10 @@ private struct TorrentSetArgs: Encodable, Sendable {
     var priorityLow: [Int]?
     var priorityNormal: [Int]?
     var priorityHigh: [Int]?
+    var downloadLimit: Int?
+    var downloadLimited: Bool?
+    var uploadLimit: Int?
+    var uploadLimited: Bool?
 
     enum CodingKeys: String, CodingKey {
         case ids
@@ -285,6 +329,7 @@ private struct TorrentSetArgs: Encodable, Sendable {
         case priorityLow = "priority-low"
         case priorityNormal = "priority-normal"
         case priorityHigh = "priority-high"
+        case downloadLimit, downloadLimited, uploadLimit, uploadLimited
     }
 }
 
@@ -322,6 +367,39 @@ private struct SessionStatsResponse: Decodable {
 private struct SessionInfoResponse: Decodable {
     let result: String
     let arguments: SessionInfo
+}
+
+struct SessionSetArgs: Encodable, Sendable {
+    var speedLimitDown: Int?
+    var speedLimitDownEnabled: Bool?
+    var speedLimitUp: Int?
+    var speedLimitUpEnabled: Bool?
+    var altSpeedDown: Int?
+    var altSpeedUp: Int?
+    var altSpeedEnabled: Bool?
+    var altSpeedTimeEnabled: Bool?
+    var altSpeedTimeBegin: Int?
+    var altSpeedTimeEnd: Int?
+    var altSpeedTimeDay: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case speedLimitDown = "speed-limit-down"
+        case speedLimitDownEnabled = "speed-limit-down-enabled"
+        case speedLimitUp = "speed-limit-up"
+        case speedLimitUpEnabled = "speed-limit-up-enabled"
+        case altSpeedDown = "alt-speed-down"
+        case altSpeedUp = "alt-speed-up"
+        case altSpeedEnabled = "alt-speed-enabled"
+        case altSpeedTimeEnabled = "alt-speed-time-enabled"
+        case altSpeedTimeBegin = "alt-speed-time-begin"
+        case altSpeedTimeEnd = "alt-speed-time-end"
+        case altSpeedTimeDay = "alt-speed-time-day"
+    }
+}
+
+private struct SessionSettingsResponse: Decodable {
+    let result: String
+    let arguments: SessionSettings
 }
 
 struct SessionInfo: Decodable, Sendable {

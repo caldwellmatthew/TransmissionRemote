@@ -569,6 +569,16 @@ struct TorrentListView: View {
         }
 
 
+        ToolbarItem(placement: .navigation) {
+            Button {
+                Task { await manager.toggleTurtleMode() }
+            } label: {
+                Label("Turtle Mode", systemImage: manager.isTurtleModeEnabled ? "tortoise.fill" : "tortoise")
+                    .foregroundStyle(manager.isTurtleModeEnabled ? .blue : .secondary)
+            }
+            .help(manager.isTurtleModeEnabled ? "Disable turtle mode" : "Enable turtle mode")
+        }
+
         // Center: speeds
         ToolbarItem(placement: .principal) {
             if manager.connectionState == .connected {
@@ -578,12 +588,20 @@ struct TorrentListView: View {
                             .foregroundStyle(manager.totalDownloadRate > 0 ? .primary : .tertiary)
                         Text(formatRate(manager.totalDownloadRate, showZero: true))
                             .monospacedDigit()
+                        if let limit = activeDownloadLimit {
+                            Text("(\(formatRate(limit * 1000)))")
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     HStack(spacing: 3) {
                         Image(systemName: "arrow.up")
                             .foregroundStyle(manager.totalUploadRate > 0 ? .primary : .tertiary)
                         Text(formatRate(manager.totalUploadRate, showZero: true))
                             .monospacedDigit()
+                        if let limit = activeUploadLimit {
+                            Text("(\(formatRate(limit * 1000)))")
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                 }
                 .font(.caption)
@@ -667,6 +685,20 @@ struct TorrentListView: View {
         case "addedDate":    KeyPathComparator(\.addedDate, order: order)
         default:             KeyPathComparator(\.name, order: order)
         }
+    }
+
+    private var activeDownloadLimit: Int? {
+        guard let s = manager.sessionSettings else { return nil }
+        if s.altSpeedEnabled { return s.altSpeedDown }
+        if s.speedLimitDownEnabled { return s.speedLimitDown }
+        return nil
+    }
+
+    private var activeUploadLimit: Int? {
+        guard let s = manager.sessionSettings else { return nil }
+        if s.altSpeedEnabled { return s.altSpeedUp }
+        if s.speedLimitUpEnabled { return s.speedLimitUp }
+        return nil
     }
 
     private static func columnName(for comparator: KeyPathComparator<Torrent>) -> String {

@@ -65,6 +65,12 @@ struct TorrentDetailView: View {
 
 private struct InfoTab: View {
     let torrent: Torrent
+    @Environment(TorrentManager.self) private var manager
+    @State private var dlLimited = false
+    @State private var dlLimit = 0
+    @State private var ulLimited = false
+    @State private var ulLimit = 0
+    @State private var limitsLoaded = false
 
     var body: some View {
         Form {
@@ -149,6 +155,47 @@ private struct InfoTab: View {
                 }
             }
 
+            Section("Speed Limits") {
+                LabeledContent("Download") {
+                    HStack(spacing: 6) {
+                        Toggle("", isOn: $dlLimited)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .onChange(of: dlLimited) { applySpeedLimits() }
+                        TextField("", value: $dlLimit, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 70)
+                            .disabled(!dlLimited)
+                            .onSubmit { applySpeedLimits() }
+                        Text("KB/s")
+                            .foregroundStyle(dlLimited ? .primary : .tertiary)
+                    }
+                }
+                LabeledContent("Upload") {
+                    HStack(spacing: 6) {
+                        Toggle("", isOn: $ulLimited)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .onChange(of: ulLimited) { applySpeedLimits() }
+                        TextField("", value: $ulLimit, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 70)
+                            .disabled(!ulLimited)
+                            .onSubmit { applySpeedLimits() }
+                        Text("KB/s")
+                            .foregroundStyle(ulLimited ? .primary : .tertiary)
+                    }
+                }
+            }
+            .onAppear {
+                guard !limitsLoaded else { return }
+                dlLimited = torrent.downloadLimited ?? false
+                dlLimit = torrent.downloadLimit ?? 0
+                ulLimited = torrent.uploadLimited ?? false
+                ulLimit = torrent.uploadLimit ?? 0
+                limitsLoaded = true
+            }
+
             if torrent.error != 0 {
                 Section("Error") {
                     LabeledContent("Message") {
@@ -160,6 +207,18 @@ private struct InfoTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func applySpeedLimits() {
+        Task {
+            await manager.setTorrentSpeedLimits(
+                id: torrent.id,
+                downloadLimit: dlLimited ? dlLimit : nil,
+                downloadLimited: dlLimited,
+                uploadLimit: ulLimited ? ulLimit : nil,
+                uploadLimited: ulLimited
+            )
+        }
     }
 }
 

@@ -10,6 +10,7 @@ private extension Double {
 final class TorrentManager {
     private(set) var torrents: [Torrent] = []
     private(set) var sessionStats: SessionStats?
+    private(set) var sessionSettings: SessionSettings?
     private(set) var connectionState: ConnectionState = .disconnected
     private(set) var errorMessage: String?
     var actionError: String?
@@ -83,6 +84,10 @@ final class TorrentManager {
         return result
     }
 
+    var isTurtleModeEnabled: Bool {
+        sessionSettings?.altSpeedEnabled ?? false
+    }
+
     var totalDownloadRate: Int {
         torrents.reduce(0) { $0 + $1.rateDownload }
     }
@@ -119,8 +124,10 @@ final class TorrentManager {
         do {
             async let fetchedTorrents = client.getTorrents()
             async let fetchedStats = client.getSessionStats()
+            async let fetchedSettings = client.getSessionSettings()
             let newTorrents = try await fetchedTorrents
             sessionStats = try await fetchedStats
+            sessionSettings = try await fetchedSettings
 
             if UserDefaults.standard.bool(forKey: "notifyOnCompletion") {
                 checkForCompletions(newTorrents)
@@ -248,6 +255,28 @@ final class TorrentManager {
 
     func setFilePriority(torrentID: Int, fileIndex: Int, priority: Int) async throws {
         try await client.setFilePriority(id: torrentID, fileIndices: [fileIndex], priority: priority)
+    }
+
+    func toggleTurtleMode() async {
+        guard let current = sessionSettings?.altSpeedEnabled else { return }
+        var args = SessionSetArgs()
+        args.altSpeedEnabled = !current
+        await performAction { try await self.client.setSession(args) }
+        await refresh()
+    }
+
+    func updateSessionSettings(_ args: SessionSetArgs) async {
+        await performAction { try await self.client.setSession(args) }
+        await refresh()
+    }
+
+    func setTorrentSpeedLimits(id: Int, downloadLimit: Int?, downloadLimited: Bool?,
+                               uploadLimit: Int?, uploadLimited: Bool?) async {
+        await performAction {
+            try await self.client.setTorrentSpeedLimits(
+                id: id, downloadLimit: downloadLimit, downloadLimited: downloadLimited,
+                uploadLimit: uploadLimit, uploadLimited: uploadLimited)
+        }
     }
 
     func setLocation(ids: [Int], location: String, move: Bool) async {
