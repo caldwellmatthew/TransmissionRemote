@@ -34,6 +34,7 @@ struct TorrentListView: View {
     @State private var showingRemoveConfirmation = false
     @State private var showingMoveSheet = false
     @State private var moveLocation = ""
+    @State private var columnsReady = UserDefaults.standard.dictionary(forKey: "torrentTableColumnWidths") == nil
 
     init() {
         let column = UserDefaults.standard.string(forKey: "sortColumn") ?? "name"
@@ -571,6 +572,8 @@ struct TorrentListView: View {
                 Task { await manager.setLocation(ids: ids, location: newLocation, move: move) }
             }
         }
+        .background(TableColumnWidthPersister(ready: $columnsReady))
+        .opacity(columnsReady ? 1 : 0)
     }
 
     @ToolbarContentBuilder

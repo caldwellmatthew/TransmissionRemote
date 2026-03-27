@@ -5,6 +5,7 @@ extension Notification.Name {
     static let openTorrentFile = Notification.Name("openTorrentFile")
     static let addTorrentLink = Notification.Name("addTorrentLink")
     static let showTorrentInfo = Notification.Name("showTorrentInfo")
+    static let resetColumns = Notification.Name("resetColumns")
 }
 
 @main
@@ -38,6 +39,8 @@ struct TransmissionRemoteApp: App {
             CommandGroup(after: .toolbar) {
                 Button("Reset Columns to Default") {
                     UserDefaults.standard.removeObject(forKey: "torrentTableColumns")
+                    UserDefaults.standard.removeObject(forKey: "torrentTableColumnWidths")
+                    NotificationCenter.default.post(name: .resetColumns, object: nil)
                 }
             }
             CommandGroup(after: .sidebar) {
