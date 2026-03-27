@@ -24,41 +24,96 @@ struct TorrentListView: View {
     var body: some View {
         @Bindable var manager = manager
 
-        Group {
-            switch manager.connectionState {
-            case .disconnected, .connecting:
-                ContentUnavailableView {
-                    ProgressView()
-                } description: {
-                    Text("Connecting to Transmission...")
-                }
-
-            case .error:
-                ContentUnavailableView {
-                    Label("Connection Error", systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(manager.errorMessage ?? "Unable to connect")
-                } actions: {
-                    Button("Retry") {
-                        manager.reconnect()
+        VStack(spacing: 0) {
+            Group {
+                switch manager.connectionState {
+                case .disconnected, .connecting:
+                    ContentUnavailableView {
+                        ProgressView()
+                    } description: {
+                        Text("Connecting to Transmission...")
                     }
-                    SettingsLink {
-                        Text("Open Settings")
+
+                case .error:
+                    ContentUnavailableView {
+                        Label("Connection Error", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(manager.errorMessage ?? "Unable to connect")
+                    } actions: {
+                        Button("Retry") {
+                            manager.reconnect()
+                        }
+                        SettingsLink {
+                            Text("Open Settings")
+                        }
+                    }
+
+                case .connected:
+                    if manager.filteredTorrents.isEmpty && manager.torrents.isEmpty {
+                        ContentUnavailableView(
+                            "No Torrents",
+                            systemImage: "tray",
+                            description: Text("Add a torrent to get started")
+                        )
+                    } else if manager.filteredTorrents.isEmpty {
+                        ContentUnavailableView.search(text: manager.searchText)
+                    } else {
+                        torrentTable
                     }
                 }
+            }
+            .frame(maxHeight: .infinity)
 
-            case .connected:
-                if manager.filteredTorrents.isEmpty && manager.torrents.isEmpty {
-                    ContentUnavailableView(
-                        "No Torrents",
-                        systemImage: "tray",
-                        description: Text("Add a torrent to get started")
-                    )
-                } else if manager.filteredTorrents.isEmpty {
-                    ContentUnavailableView.search(text: manager.searchText)
-                } else {
-                    torrentTable
+            if manager.connectionState == .connected {
+                Divider()
+                HStack {
+                    Group {
+                        if manager.filteredTorrents.count != manager.torrents.count {
+                            Text("\(manager.filteredTorrents.count) of \(manager.torrents.count) torrents")
+                        } else {
+                            Text("\(manager.torrents.count) torrents")
+                        }
+                    }
+                    .foregroundStyle(.tertiary)
+
+                    Spacer()
+
+                    Button {
+                        Task { await manager.toggleTurtleMode() }
+                    } label: {
+                        Image(systemName: manager.isTurtleModeEnabled ? "tortoise.fill" : "tortoise")
+                            .foregroundStyle(manager.isTurtleModeEnabled ? .blue : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(manager.isTurtleModeEnabled ? "Disable turtle mode" : "Enable turtle mode")
+
+                    HStack(spacing: 14) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.down")
+                                .foregroundStyle(manager.totalDownloadRate > 0 ? .primary : .tertiary)
+                            Text(formatRate(manager.totalDownloadRate, showZero: true))
+                                .monospacedDigit()
+                            if let limit = activeDownloadLimit {
+                                Text("(\(formatRate(limit * 1000)))")
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.up")
+                                .foregroundStyle(manager.totalUploadRate > 0 ? .primary : .tertiary)
+                            Text(formatRate(manager.totalUploadRate, showZero: true))
+                                .monospacedDigit()
+                            if let limit = activeUploadLimit {
+                                Text("(\(formatRate(limit * 1000)))")
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                    }
                 }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 5)
             }
         }
         .searchable(text: $manager.searchText, prompt: "Filter torrents")
@@ -568,47 +623,6 @@ struct TorrentListView: View {
             .labelStyle(.titleAndIcon)
         }
 
-
-        ToolbarItem(placement: .navigation) {
-            Button {
-                Task { await manager.toggleTurtleMode() }
-            } label: {
-                Label("Turtle Mode", systemImage: manager.isTurtleModeEnabled ? "tortoise.fill" : "tortoise")
-                    .foregroundStyle(manager.isTurtleModeEnabled ? .blue : .secondary)
-            }
-            .help(manager.isTurtleModeEnabled ? "Disable turtle mode" : "Enable turtle mode")
-        }
-
-        // Center: speeds
-        ToolbarItem(placement: .principal) {
-            if manager.connectionState == .connected {
-                HStack(spacing: 14) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.down")
-                            .foregroundStyle(manager.totalDownloadRate > 0 ? .primary : .tertiary)
-                        Text(formatRate(manager.totalDownloadRate, showZero: true))
-                            .monospacedDigit()
-                        if let limit = activeDownloadLimit {
-                            Text("(\(formatRate(limit * 1000)))")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.up")
-                            .foregroundStyle(manager.totalUploadRate > 0 ? .primary : .tertiary)
-                        Text(formatRate(manager.totalUploadRate, showZero: true))
-                            .monospacedDigit()
-                        if let limit = activeUploadLimit {
-                            Text("(\(formatRate(limit * 1000)))")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .background(ToolbarItemBorderRemover())
-            }
-        }
 
         // Right: action buttons
         ToolbarItemGroup(placement: .primaryAction) {
