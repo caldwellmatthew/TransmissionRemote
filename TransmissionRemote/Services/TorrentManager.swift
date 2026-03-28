@@ -245,6 +245,41 @@ final class TorrentManager {
         await performAction { try await self.client.reannounceTorrents(ids: ids) }
     }
 
+    func queueMoveTopSelected() async {
+        let ids = Array(selectedTorrentIDs)
+        guard !ids.isEmpty else { return }
+        await performAction { try await self.client.queueMoveTop(ids: ids) }
+        await refresh()
+    }
+
+    func queueMoveUpSelected() async {
+        let ids = Array(selectedTorrentIDs)
+        guard !ids.isEmpty else { return }
+        await performAction { try await self.client.queueMoveUp(ids: ids) }
+        await refresh()
+    }
+
+    func queueMoveDownSelected() async {
+        let ids = Array(selectedTorrentIDs)
+        guard !ids.isEmpty else { return }
+        await performAction { try await self.client.queueMoveDown(ids: ids) }
+        await refresh()
+    }
+
+    func queueMoveBottomSelected() async {
+        let ids = Array(selectedTorrentIDs)
+        guard !ids.isEmpty else { return }
+        await performAction { try await self.client.queueMoveBottom(ids: ids) }
+        await refresh()
+    }
+
+    func setBandwidthPrioritySelected(priority: Int) async {
+        let ids = Array(selectedTorrentIDs)
+        guard !ids.isEmpty else { return }
+        await performAction { try await self.client.setBandwidthPriority(ids: ids, priority: priority) }
+        await refresh()
+    }
+
     func setFileWanted(torrentID: Int, fileIndex: Int, wanted: Bool) async throws {
         if wanted {
             try await client.setFilesWanted(id: torrentID, fileIndices: [fileIndex])

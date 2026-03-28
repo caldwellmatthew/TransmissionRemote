@@ -579,6 +579,43 @@ struct TorrentListView: View {
 
             Divider()
 
+            Menu("Queue") {
+                Button("Move to Top") {
+                    manager.selectedTorrentIDs = ids
+                    Task { await manager.queueMoveTopSelected() }
+                }
+                Button("Move Up") {
+                    manager.selectedTorrentIDs = ids
+                    Task { await manager.queueMoveUpSelected() }
+                }
+                Button("Move Down") {
+                    manager.selectedTorrentIDs = ids
+                    Task { await manager.queueMoveDownSelected() }
+                }
+                Button("Move to Bottom") {
+                    manager.selectedTorrentIDs = ids
+                    Task { await manager.queueMoveBottomSelected() }
+                }
+            }
+
+            Menu("Priority") {
+                let currentPriority = selectedTorrents.count == 1 ? selectedTorrents.first?.bandwidthPriority : nil
+                Button(currentPriority == 1 ? "✓ High" : "  High") {
+                    manager.selectedTorrentIDs = ids
+                    Task { await manager.setBandwidthPrioritySelected(priority: 1) }
+                }
+                Button(currentPriority == 0 ? "✓ Normal" : "  Normal") {
+                    manager.selectedTorrentIDs = ids
+                    Task { await manager.setBandwidthPrioritySelected(priority: 0) }
+                }
+                Button(currentPriority == -1 ? "✓ Low" : "  Low") {
+                    manager.selectedTorrentIDs = ids
+                    Task { await manager.setBandwidthPrioritySelected(priority: -1) }
+                }
+            }
+
+            Divider()
+
             Button("Change Download Location...") {
                 manager.selectedTorrentIDs = ids
                 moveLocation = selectedTorrents.first?.downloadDir ?? ""

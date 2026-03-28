@@ -169,6 +169,22 @@ actor TransmissionClient {
         try await performAction("torrent-reannounce", ids: ids)
     }
 
+    func queueMoveTop(ids: [Int]) async throws {
+        try await performAction("queue-move-top", ids: ids)
+    }
+
+    func queueMoveUp(ids: [Int]) async throws {
+        try await performAction("queue-move-up", ids: ids)
+    }
+
+    func queueMoveDown(ids: [Int]) async throws {
+        try await performAction("queue-move-down", ids: ids)
+    }
+
+    func queueMoveBottom(ids: [Int]) async throws {
+        try await performAction("queue-move-bottom", ids: ids)
+    }
+
     func setLocation(ids: [Int], location: String, move: Bool) async throws {
         let body = RPCRequest(
             method: "torrent-set-location",
@@ -212,6 +228,12 @@ actor TransmissionClient {
         args.downloadLimited = downloadLimited
         args.uploadLimit = uploadLimit
         args.uploadLimited = uploadLimited
+        try await setTorrent(args)
+    }
+
+    func setBandwidthPriority(ids: [Int], priority: Int) async throws {
+        var args = TorrentSetArgs(ids: ids)
+        args.bandwidthPriority = priority
         try await setTorrent(args)
     }
 
@@ -321,6 +343,7 @@ private struct TorrentSetArgs: Encodable, Sendable {
     var downloadLimited: Bool?
     var uploadLimit: Int?
     var uploadLimited: Bool?
+    var bandwidthPriority: Int?
 
     enum CodingKeys: String, CodingKey {
         case ids
@@ -329,7 +352,7 @@ private struct TorrentSetArgs: Encodable, Sendable {
         case priorityLow = "priority-low"
         case priorityNormal = "priority-normal"
         case priorityHigh = "priority-high"
-        case downloadLimit, downloadLimited, uploadLimit, uploadLimited
+        case downloadLimit, downloadLimited, uploadLimit, uploadLimited, bandwidthPriority
     }
 }
 
