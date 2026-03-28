@@ -12,15 +12,24 @@ actor TransmissionClient {
         self.password = password
     }
 
+    static let defaultEndpoint = URL(string: "http://localhost:9091/transmission/rpc")!
+
+    static func parseEndpoint(_ serverURL: String?) -> URL {
+        guard let serverURL, !serverURL.isEmpty else { return defaultEndpoint }
+        let trimmed = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: ["/"])
+        guard let url = URL(string: trimmed), url.scheme != nil, url.host != nil else {
+            return defaultEndpoint
+        }
+        if url.path.hasSuffix("/transmission/rpc") {
+            return url
+        }
+        return url.appendingPathComponent("transmission/rpc")
+    }
+
     static func fromDefaults() -> TransmissionClient {
-        let serverURL = UserDefaults.standard.string(forKey: "serverURL") ?? "http://localhost:9091"
-        let trimmed = serverURL.hasSuffix("/")
-            ? String(serverURL.dropLast())
-            : serverURL
-        let urlString = trimmed.hasSuffix("/transmission/rpc")
-            ? trimmed
-            : trimmed + "/transmission/rpc"
-        let endpoint = URL(string: urlString)!
+        let serverURL = UserDefaults.standard.string(forKey: "serverURL")
+        let endpoint = parseEndpoint(serverURL)
 
         let username = KeychainHelper.load(account: "username")
         let password = KeychainHelper.load(account: "password")
