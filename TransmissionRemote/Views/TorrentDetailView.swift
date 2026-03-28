@@ -328,8 +328,9 @@ private struct FilesTab: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .frame(maxWidth: 80)
             }
-            .width(min: 50, ideal: 70)
+            .width(min: 80, ideal: 100)
         } rows: {
             ForEach(fileRows) { row in
                 TableRow(row)
