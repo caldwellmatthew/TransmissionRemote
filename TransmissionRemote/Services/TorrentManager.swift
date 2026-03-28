@@ -22,6 +22,7 @@ final class TorrentManager {
     private var client: TransmissionClient
     private var pollTask: Task<Void, Never>?
     private(set) var previousPercentDone: [Int: Double] = [:]
+    private var isRefreshing = false
 
     private var pollInterval: TimeInterval {
         UserDefaults.standard.double(forKey: "pollInterval").nonZero ?? 5.0
@@ -133,6 +134,10 @@ final class TorrentManager {
     }
 
     func refresh() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
         if connectionState == .disconnected {
             connectionState = .connecting
         }
