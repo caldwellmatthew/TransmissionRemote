@@ -98,12 +98,12 @@ private struct InfoTab: View {
                     }
 
                     Section("Time") {
-                        LabeledContent("Added", value: formatDate(torrent.addedDate))
+                        LabeledContent("Added") { dateText(torrent.addedDate) }
                         if torrent.doneDate > 0 {
-                            LabeledContent("Completed", value: formatDate(torrent.doneDate))
+                            LabeledContent("Completed") { dateText(torrent.doneDate) }
                         }
                         if let activity = torrent.activityDate, activity > 0 {
-                            LabeledContent("Last Active", value: formatDate(activity))
+                            LabeledContent("Last Active") { dateText(activity) }
                         }
                         if let dl = torrent.secondsDownloading, dl > 0 {
                             LabeledContent("Time Downloading", value: formatDuration(dl))
@@ -113,19 +113,6 @@ private struct InfoTab: View {
                         }
                     }
 
-                    if torrent.comment != nil || torrent.creator != nil || !torrent.labels.isEmpty {
-                        Section("Metadata") {
-                            if let comment = torrent.comment, !comment.isEmpty {
-                                LabeledContent("Comment", value: comment)
-                            }
-                            if let creator = torrent.creator, !creator.isEmpty {
-                                LabeledContent("Creator", value: creator)
-                            }
-                            if !torrent.labels.isEmpty {
-                                LabeledContent("Labels", value: torrent.labels.joined(separator: ", "))
-                            }
-                        }
-                    }
                 }
                 .formStyle(.grouped)
                 .scrollDisabled(true)
@@ -144,25 +131,7 @@ private struct InfoTab: View {
                         if let getting = torrent.peersGettingFromUs {
                             LabeledContent("Us → Peers", value: "\(getting)")
                         }
-                    }
-
-                    Section("Storage") {
-                        LabeledContent("Location", value: torrent.downloadDir)
-                        if let hash = torrent.hashString {
-                            LabeledContent("Hash") {
-                                Text(hash).textSelection(.enabled).monospaced()
-                            }
-                        }
-                        if let pieces = torrent.pieceCount, let size = torrent.pieceSize {
-                            LabeledContent("Pieces", value: "\(pieces) × \(formatBytes(size))")
-                        }
-                        if let files = torrent.fileCount {
-                            LabeledContent("Files", value: "\(files)")
-                        }
-                    }
-
-                    Section("Speed Limits") {
-                        LabeledContent("Download") {
+                        LabeledContent("Download Limit") {
                             HStack(spacing: 6) {
                                 Toggle("", isOn: $dlLimited)
                                     .labelsHidden()
@@ -177,7 +146,7 @@ private struct InfoTab: View {
                                     .foregroundStyle(dlLimited ? .primary : .tertiary)
                             }
                         }
-                        LabeledContent("Upload") {
+                        LabeledContent("Upload Limit") {
                             HStack(spacing: 6) {
                                 Toggle("", isOn: $ulLimited)
                                     .labelsHidden()
@@ -202,6 +171,38 @@ private struct InfoTab: View {
                         limitsLoaded = true
                     }
 
+                    Section("Storage") {
+                        LabeledContent("Location", value: torrent.downloadDir)
+                        if let hash = torrent.hashString {
+                            LabeledContent("Hash") {
+                                Text(hash).textSelection(.enabled).monospaced()
+                            }
+                        }
+                        if let pieces = torrent.pieceCount, let size = torrent.pieceSize {
+                            LabeledContent("Pieces", value: "\(pieces) × \(formatBytes(size))")
+                        }
+                        if let files = torrent.fileCount {
+                            LabeledContent("Files", value: "\(files)")
+                        }
+                    }
+
+                    if torrent.comment != nil || torrent.creator != nil || torrent.dateCreated != nil || !torrent.labels.isEmpty {
+                        Section("Metadata") {
+                            if let comment = torrent.comment, !comment.isEmpty {
+                                LabeledContent("Comment", value: comment)
+                            }
+                            if let creator = torrent.creator, !creator.isEmpty {
+                                LabeledContent("Creator", value: creator)
+                            }
+                            if let dateCreated = torrent.dateCreated, dateCreated > 0 {
+                                LabeledContent("Created") { dateText(dateCreated) }
+                            }
+                            if !torrent.labels.isEmpty {
+                                LabeledContent("Labels", value: torrent.labels.joined(separator: ", "))
+                            }
+                        }
+                    }
+
                     if torrent.error != 0 {
                         Section("Error") {
                             LabeledContent("Message") {
@@ -215,6 +216,14 @@ private struct InfoTab: View {
                 .formStyle(.grouped)
                 .scrollDisabled(true)
             }
+        }
+    }
+
+    private func dateText(_ timestamp: Int) -> some View {
+        HStack(spacing: 4) {
+            Text(formatAbsoluteDate(timestamp))
+            Text("(\(formatRelativeDate(timestamp)))")
+                .foregroundStyle(.tertiary)
         }
     }
 

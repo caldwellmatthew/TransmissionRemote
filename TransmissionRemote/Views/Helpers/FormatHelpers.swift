@@ -42,6 +42,20 @@ func formatDate(_ unixTimestamp: Int) -> String {
     return formatter.localizedString(for: date, relativeTo: .now)
 }
 
+func formatAbsoluteDate(_ unixTimestamp: Int) -> String {
+    guard unixTimestamp > 0 else { return "" }
+    let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
+    return date.formatted(.dateTime.month(.twoDigits).day(.twoDigits).year(.defaultDigits))
+}
+
+func formatRelativeDate(_ unixTimestamp: Int) -> String {
+    guard unixTimestamp > 0 else { return "" }
+    let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
+    let formatter = RelativeDateTimeFormatter()
+    formatter.unitsStyle = .abbreviated
+    return formatter.localizedString(for: date, relativeTo: .now)
+}
+
 func formatDuration(_ totalSeconds: Int) -> String {
     guard totalSeconds > 0 else { return "" }
     let d = totalSeconds / 86400
