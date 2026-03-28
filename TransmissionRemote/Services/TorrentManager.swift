@@ -21,7 +21,7 @@ final class TorrentManager {
 
     private var client: TransmissionClient
     private var pollTask: Task<Void, Never>?
-    private var previousPercentDone: [Int: Double] = [:]
+    private(set) var previousPercentDone: [Int: Double] = [:]
 
     private var pollInterval: TimeInterval {
         UserDefaults.standard.double(forKey: "pollInterval").nonZero ?? 5.0
@@ -101,6 +101,22 @@ final class TorrentManager {
         startPolling()
     }
 
+    /// Test-only initializer that skips network setup
+    init(testing: Bool) {
+        client = TransmissionClient.fromDefaults()
+        // Don't start polling in tests
+    }
+
+    /// Test-only: set torrents directly
+    func setTorrents(_ newTorrents: [Torrent]) {
+        torrents = newTorrents
+    }
+
+    /// Test-only: set previous percent done for completion detection tests
+    func setPreviousPercentDone(_ values: [Int: Double]) {
+        previousPercentDone = values
+    }
+
     func startPolling() {
         guard pollTask == nil else { return }
         pollTask = Task {
@@ -144,15 +160,19 @@ final class TorrentManager {
         }
     }
 
-    private func checkForCompletions(_ newTorrents: [Torrent]) {
-        // Only check if we have previous state (skip first poll)
-        guard !previousPercentDone.isEmpty else { return }
+    func checkForCompletions(_ newTorrents: [Torrent]) {
+        for torrent in newlyCompleted(newTorrents) {
+            postCompletionNotification(for: torrent)
+        }
+    }
 
-        for torrent in newTorrents {
+    func newlyCompleted(_ newTorrents: [Torrent]) -> [Torrent] {
+        // Only check if we have previous state (skip first poll)
+        guard !previousPercentDone.isEmpty else { return [] }
+
+        return newTorrents.filter { torrent in
             let wasDone = previousPercentDone[torrent.id].map { $0 >= 1.0 } ?? false
-            if torrent.percentDone >= 1.0 && !wasDone {
-                postCompletionNotification(for: torrent)
-            }
+            return torrent.percentDone >= 1.0 && !wasDone
         }
     }
 

@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		B0000007 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A0000009 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A0000006;
+			remoteInfo = TransmissionRemote;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		A0000001 /* TransmissionRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransmissionRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0000001 /* TransmissionRemoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TransmissionRemoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,10 +40,22 @@
 			path = TransmissionRemote;
 			sourceTree = "<group>";
 		};
+		B0000002 /* TransmissionRemoteTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TransmissionRemoteTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A0000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0000004 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				A0000002 /* TransmissionRemote */,
+				B0000002 /* TransmissionRemoteTests */,
 				A0000005 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				A0000001 /* TransmissionRemote.app */,
+				B0000001 /* TransmissionRemoteTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +108,29 @@
 			productReference = A0000001 /* TransmissionRemote.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B0000006 /* TransmissionRemoteTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B000000B /* Build configuration list for PBXNativeTarget "TransmissionRemoteTests" */;
+			buildPhases = (
+				B0000003 /* Sources */,
+				B0000004 /* Frameworks */,
+				B0000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B0000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B0000002 /* TransmissionRemoteTests */,
+			);
+			name = TransmissionRemoteTests;
+			packageProductDependencies = (
+			);
+			productName = TransmissionRemoteTests;
+			productReference = B0000001 /* TransmissionRemoteTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -95,6 +143,10 @@
 				TargetAttributes = {
 					A0000006 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					B0000006 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A0000006;
 					};
 				};
 			};
@@ -113,12 +165,20 @@
 			projectRoot = "";
 			targets = (
 				A0000006 /* TransmissionRemote */,
+				B0000006 /* TransmissionRemoteTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A0000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0000005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +195,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B0000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B0000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A0000006 /* TransmissionRemote */;
+			targetProxy = B0000007 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A000000A /* Debug */ = {
@@ -328,6 +403,42 @@
 			};
 			name = Release;
 		};
+		B0000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.caldwell.TransmissionRemoteTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TransmissionRemote.app/Contents/MacOS/TransmissionRemote";
+			};
+			name = Debug;
+		};
+		B000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.caldwell.TransmissionRemoteTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TransmissionRemote.app/Contents/MacOS/TransmissionRemote";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -345,6 +456,15 @@
 			buildConfigurations = (
 				A000000E /* Debug */,
 				A000000F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B000000B /* Build configuration list for PBXNativeTarget "TransmissionRemoteTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0000009 /* Debug */,
+				B000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
