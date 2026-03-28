@@ -130,7 +130,7 @@ struct TableColumnWidthPersister: NSViewRepresentable {
             columnObservations = tableView.tableColumns.map { column in
                 column.observe(\.width, options: [.new, .old]) { [weak self] _, change in
                     guard change.oldValue != change.newValue else { return }
-                    MainActor.assumeIsolated {
+                    DispatchQueue.main.async {
                         self?.scheduleWidthSave()
                     }
                 }
