@@ -57,7 +57,7 @@ struct TransmissionRemoteApp: App {
                     .environment(torrentManager)
             }
         }
-        .defaultSize(width: 600, height: 500)
+        .defaultSize(width: 750, height: 550)
 
         MenuBarExtra("Transmission Remote", systemImage: "arrow.up.doc", isInserted: $showMenuBarExtra) {
             if let stats = torrentManager.sessionStats {

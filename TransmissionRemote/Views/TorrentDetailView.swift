@@ -264,13 +264,13 @@ private struct FilesTab: View {
                     .lineLimit(1)
                     .help(row.name)
             }
-            .width(min: 200)
+            .width(min: 200, ideal: 300)
 
             TableColumn("Size") { row in
                 Text(formatBytes(row.size))
                     .monospacedDigit()
             }
-            .width(min: 60, ideal: 80)
+            .width(min: 60, ideal: 70)
 
             TableColumn("Progress") { row in
                 HStack(spacing: 6) {
@@ -330,7 +330,7 @@ private struct FilesTab: View {
                 .labelsHidden()
                 .frame(maxWidth: 80)
             }
-            .width(min: 80, ideal: 100)
+            .width(min: 70, ideal: 85)
         } rows: {
             ForEach(fileRows) { row in
                 TableRow(row)
