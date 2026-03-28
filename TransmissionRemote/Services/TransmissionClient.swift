@@ -124,6 +124,8 @@ actor TransmissionClient {
     // MARK: - Add Torrent
 
     func addTorrent(fileURL: URL, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
+        let didAccess = fileURL.startAccessingSecurityScopedResource()
+        defer { if didAccess { fileURL.stopAccessingSecurityScopedResource() } }
         let fileData = try Data(contentsOf: fileURL)
         var args = options
         args.metainfo = fileData.base64EncodedString()
