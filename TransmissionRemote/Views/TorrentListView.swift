@@ -49,17 +49,19 @@ struct TorrentListView: View {
                     }
 
                 case .connected:
-                    if manager.filteredTorrents.isEmpty && manager.torrents.isEmpty {
-                        ContentUnavailableView(
-                            "No Torrents",
-                            systemImage: "tray",
-                            description: Text("Add a torrent to get started")
-                        )
-                    } else if manager.filteredTorrents.isEmpty {
-                        ContentUnavailableView.search(text: manager.searchText)
-                    } else {
-                        torrentTable
-                    }
+                    torrentTable
+                        .opacity(manager.filteredTorrents.isEmpty ? 0 : 1)
+                        .overlay {
+                            if manager.filteredTorrents.isEmpty && manager.torrents.isEmpty {
+                                ContentUnavailableView(
+                                    "No Torrents",
+                                    systemImage: "tray",
+                                    description: Text("Add a torrent to get started")
+                                )
+                            } else if manager.filteredTorrents.isEmpty {
+                                ContentUnavailableView.search(text: manager.searchText)
+                            }
+                        }
                 }
             }
             .frame(maxHeight: .infinity)
