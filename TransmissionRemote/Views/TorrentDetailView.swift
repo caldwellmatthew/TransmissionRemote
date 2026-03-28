@@ -73,140 +73,149 @@ private struct InfoTab: View {
     @State private var limitsLoaded = false
 
     var body: some View {
-        Form {
-            Section("Name") {
-                Text(torrent.name)
-                    .textSelection(.enabled)
-            }
-
-            Section("General") {
-                LabeledContent("Status", value: torrent.status.label)
-                LabeledContent("Progress", value: "\(Int(torrent.percentDone * 100))%")
-                LabeledContent("Size", value: formatBytes(torrent.totalSize))
-                if let sizeWhenDone = torrent.sizeWhenDone {
-                    LabeledContent("Size When Done", value: formatBytes(sizeWhenDone))
-                }
-                if let uploaded = torrent.uploadedEver {
-                    LabeledContent("Uploaded", value: formatBytes(uploaded))
-                }
-                LabeledContent("Ratio", value: torrent.uploadRatio >= 0 ? String(format: "%.2f", torrent.uploadRatio) : "—")
-                if let priority = torrent.bandwidthPriority {
-                    LabeledContent("Priority", value: formatPriority(priority))
-                }
-            }
-
-            Section("Transfer") {
-                LabeledContent("Download", value: formatRate(torrent.rateDownload, showZero: true))
-                LabeledContent("Upload", value: formatRate(torrent.rateUpload, showZero: true))
-                if torrent.eta > 0 {
-                    LabeledContent("ETA", value: formatETA(torrent.eta))
-                }
-                LabeledContent("Peers", value: "\(torrent.peersConnected)")
-                if let sending = torrent.peersSendingToUs {
-                    LabeledContent("Seeds → Us", value: "\(sending)")
-                }
-                if let getting = torrent.peersGettingFromUs {
-                    LabeledContent("Us → Peers", value: "\(getting)")
-                }
-            }
-
-            Section("Time") {
-                LabeledContent("Added", value: formatDate(torrent.addedDate))
-                if torrent.doneDate > 0 {
-                    LabeledContent("Completed", value: formatDate(torrent.doneDate))
-                }
-                if let activity = torrent.activityDate, activity > 0 {
-                    LabeledContent("Last Active", value: formatDate(activity))
-                }
-                if let dl = torrent.secondsDownloading, dl > 0 {
-                    LabeledContent("Time Downloading", value: formatDuration(dl))
-                }
-                if let seed = torrent.secondsSeeding, seed > 0 {
-                    LabeledContent("Time Seeding", value: formatDuration(seed))
-                }
-            }
-
-            Section("Storage") {
-                LabeledContent("Location", value: torrent.downloadDir)
-                if let hash = torrent.hashString {
-                    LabeledContent("Hash") {
-                        Text(hash).textSelection(.enabled).monospaced()
-                    }
-                }
-                if let pieces = torrent.pieceCount, let size = torrent.pieceSize {
-                    LabeledContent("Pieces", value: "\(pieces) × \(formatBytes(size))")
-                }
-                if let files = torrent.fileCount {
-                    LabeledContent("Files", value: "\(files)")
-                }
-            }
-
-            if torrent.comment != nil || torrent.creator != nil || !torrent.labels.isEmpty {
-                Section("Metadata") {
-                    if let comment = torrent.comment, !comment.isEmpty {
-                        LabeledContent("Comment", value: comment)
-                    }
-                    if let creator = torrent.creator, !creator.isEmpty {
-                        LabeledContent("Creator", value: creator)
-                    }
-                    if !torrent.labels.isEmpty {
-                        LabeledContent("Labels", value: torrent.labels.joined(separator: ", "))
-                    }
-                }
-            }
-
-            Section("Speed Limits") {
-                LabeledContent("Download") {
-                    HStack(spacing: 6) {
-                        Toggle("", isOn: $dlLimited)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .onChange(of: dlLimited) { applySpeedLimits() }
-                        TextField("", value: $dlLimit, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 70)
-                            .disabled(!dlLimited)
-                            .onSubmit { applySpeedLimits() }
-                        Text("KB/s")
-                            .foregroundStyle(dlLimited ? .primary : .tertiary)
-                    }
-                }
-                LabeledContent("Upload") {
-                    HStack(spacing: 6) {
-                        Toggle("", isOn: $ulLimited)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .onChange(of: ulLimited) { applySpeedLimits() }
-                        TextField("", value: $ulLimit, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 70)
-                            .disabled(!ulLimited)
-                            .onSubmit { applySpeedLimits() }
-                        Text("KB/s")
-                            .foregroundStyle(ulLimited ? .primary : .tertiary)
-                    }
-                }
-            }
-            .onAppear {
-                guard !limitsLoaded else { return }
-                dlLimited = torrent.downloadLimited ?? false
-                dlLimit = torrent.downloadLimit ?? 0
-                ulLimited = torrent.uploadLimited ?? false
-                ulLimit = torrent.uploadLimit ?? 0
-                limitsLoaded = true
-            }
-
-            if torrent.error != 0 {
-                Section("Error") {
-                    LabeledContent("Message") {
-                        Text(torrent.errorString)
-                            .foregroundStyle(.red)
+        ScrollView {
+            HStack(alignment: .top, spacing: 0) {
+                Form {
+                    Section("Name") {
+                        Text(torrent.name)
                             .textSelection(.enabled)
                     }
+
+                    Section("General") {
+                        LabeledContent("Status", value: torrent.status.label)
+                        LabeledContent("Progress", value: "\(Int(torrent.percentDone * 100))%")
+                        LabeledContent("Size", value: formatBytes(torrent.totalSize))
+                        if let sizeWhenDone = torrent.sizeWhenDone {
+                            LabeledContent("Size When Done", value: formatBytes(sizeWhenDone))
+                        }
+                        if let uploaded = torrent.uploadedEver {
+                            LabeledContent("Uploaded", value: formatBytes(uploaded))
+                        }
+                        LabeledContent("Ratio", value: torrent.uploadRatio >= 0 ? String(format: "%.2f", torrent.uploadRatio) : "—")
+                        if let priority = torrent.bandwidthPriority {
+                            LabeledContent("Priority", value: formatPriority(priority))
+                        }
+                    }
+
+                    Section("Time") {
+                        LabeledContent("Added", value: formatDate(torrent.addedDate))
+                        if torrent.doneDate > 0 {
+                            LabeledContent("Completed", value: formatDate(torrent.doneDate))
+                        }
+                        if let activity = torrent.activityDate, activity > 0 {
+                            LabeledContent("Last Active", value: formatDate(activity))
+                        }
+                        if let dl = torrent.secondsDownloading, dl > 0 {
+                            LabeledContent("Time Downloading", value: formatDuration(dl))
+                        }
+                        if let seed = torrent.secondsSeeding, seed > 0 {
+                            LabeledContent("Time Seeding", value: formatDuration(seed))
+                        }
+                    }
+
+                    if torrent.comment != nil || torrent.creator != nil || !torrent.labels.isEmpty {
+                        Section("Metadata") {
+                            if let comment = torrent.comment, !comment.isEmpty {
+                                LabeledContent("Comment", value: comment)
+                            }
+                            if let creator = torrent.creator, !creator.isEmpty {
+                                LabeledContent("Creator", value: creator)
+                            }
+                            if !torrent.labels.isEmpty {
+                                LabeledContent("Labels", value: torrent.labels.joined(separator: ", "))
+                            }
+                        }
+                    }
                 }
+                .formStyle(.grouped)
+                .scrollDisabled(true)
+
+                Form {
+                    Section("Transfer") {
+                        LabeledContent("Download", value: formatRate(torrent.rateDownload, showZero: true))
+                        LabeledContent("Upload", value: formatRate(torrent.rateUpload, showZero: true))
+                        if torrent.eta > 0 {
+                            LabeledContent("ETA", value: formatETA(torrent.eta))
+                        }
+                        LabeledContent("Peers", value: "\(torrent.peersConnected)")
+                        if let sending = torrent.peersSendingToUs {
+                            LabeledContent("Seeds → Us", value: "\(sending)")
+                        }
+                        if let getting = torrent.peersGettingFromUs {
+                            LabeledContent("Us → Peers", value: "\(getting)")
+                        }
+                    }
+
+                    Section("Storage") {
+                        LabeledContent("Location", value: torrent.downloadDir)
+                        if let hash = torrent.hashString {
+                            LabeledContent("Hash") {
+                                Text(hash).textSelection(.enabled).monospaced()
+                            }
+                        }
+                        if let pieces = torrent.pieceCount, let size = torrent.pieceSize {
+                            LabeledContent("Pieces", value: "\(pieces) × \(formatBytes(size))")
+                        }
+                        if let files = torrent.fileCount {
+                            LabeledContent("Files", value: "\(files)")
+                        }
+                    }
+
+                    Section("Speed Limits") {
+                        LabeledContent("Download") {
+                            HStack(spacing: 6) {
+                                Toggle("", isOn: $dlLimited)
+                                    .labelsHidden()
+                                    .toggleStyle(.switch)
+                                    .onChange(of: dlLimited) { applySpeedLimits() }
+                                TextField("", value: $dlLimit, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 70)
+                                    .disabled(!dlLimited)
+                                    .onSubmit { applySpeedLimits() }
+                                Text("KB/s")
+                                    .foregroundStyle(dlLimited ? .primary : .tertiary)
+                            }
+                        }
+                        LabeledContent("Upload") {
+                            HStack(spacing: 6) {
+                                Toggle("", isOn: $ulLimited)
+                                    .labelsHidden()
+                                    .toggleStyle(.switch)
+                                    .onChange(of: ulLimited) { applySpeedLimits() }
+                                TextField("", value: $ulLimit, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 70)
+                                    .disabled(!ulLimited)
+                                    .onSubmit { applySpeedLimits() }
+                                Text("KB/s")
+                                    .foregroundStyle(ulLimited ? .primary : .tertiary)
+                            }
+                        }
+                    }
+                    .onAppear {
+                        guard !limitsLoaded else { return }
+                        dlLimited = torrent.downloadLimited ?? false
+                        dlLimit = torrent.downloadLimit ?? 0
+                        ulLimited = torrent.uploadLimited ?? false
+                        ulLimit = torrent.uploadLimit ?? 0
+                        limitsLoaded = true
+                    }
+
+                    if torrent.error != 0 {
+                        Section("Error") {
+                            LabeledContent("Message") {
+                                Text(torrent.errorString)
+                                    .foregroundStyle(.red)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    }
+                }
+                .formStyle(.grouped)
+                .scrollDisabled(true)
             }
         }
-        .formStyle(.grouped)
     }
 
     private func applySpeedLimits() {
