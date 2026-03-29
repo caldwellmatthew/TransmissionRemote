@@ -44,6 +44,9 @@ struct SettingsView: View {
                         TextField("", value: $pollInterval, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 60)
+                            .onChange(of: pollInterval) {
+                                if pollInterval < 1 { pollInterval = 1 }
+                            }
                         Text("seconds")
                     }
                 }

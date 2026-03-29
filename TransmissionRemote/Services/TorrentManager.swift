@@ -25,7 +25,7 @@ final class TorrentManager {
     private var isRefreshing = false
 
     private var pollInterval: TimeInterval {
-        UserDefaults.standard.double(forKey: "pollInterval").nonZero ?? 5.0
+        max(1, UserDefaults.standard.double(forKey: "pollInterval").nonZero ?? 5.0)
     }
 
     enum ConnectionState {
