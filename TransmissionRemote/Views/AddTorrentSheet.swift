@@ -24,6 +24,8 @@ struct AddTorrentSheet: View {
     @State private var priority = 0
     @State private var labelsText = ""
     @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var showingError = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,6 +66,9 @@ struct AddTorrentSheet: View {
             }
             .padding()
         }
+        .alert("Error Adding Torrent", isPresented: $showingError, actions: {}) {
+            Text(errorMessage ?? "")
+        }
         .task {
             downloadDir = await manager.getDefaultDownloadDir()
             if case .link(let str) = source { linkText = str }
@@ -99,10 +104,11 @@ struct AddTorrentSheet: View {
                     _ = try await manager.addTorrent(url: trimmed, options: options)
                 }
                 onComplete(nil)
+                dismiss()
             } catch {
-                onComplete(error.localizedDescription)
+                errorMessage = error.localizedDescription
+                showingError = true
             }
-            dismiss()
         }
     }
 }
