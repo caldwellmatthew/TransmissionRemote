@@ -5,7 +5,6 @@ struct TorrentDetailView: View {
     @Environment(TorrentManager.self) private var manager
     @State private var torrent: Torrent?
     @AppStorage("pollInterval") private var pollInterval: Double = 5.0
-    @State private var pollTask: Task<Void, Never>?
     @State private var loadFailed = false
 
     var body: some View {
@@ -37,16 +36,10 @@ struct TorrentDetailView: View {
         }
         .frame(minWidth: 500, minHeight: 400)
         .task {
-            await refresh()
-            pollTask = Task {
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(pollInterval))
-                    await refresh()
-                }
+            while !Task.isCancelled {
+                await refresh()
+                try? await Task.sleep(for: .seconds(pollInterval))
             }
-        }
-        .onDisappear {
-            pollTask?.cancel()
         }
     }
 
