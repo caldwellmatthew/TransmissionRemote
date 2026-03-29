@@ -59,7 +59,7 @@ struct TransmissionRemoteApp: App {
         }
         .defaultSize(width: 750, height: 550)
 
-        MenuBarExtra("Transmission Remote", systemImage: "arrow.up.doc", isInserted: $showMenuBarExtra) {
+        MenuBarExtra("Transmission Remote", systemImage: "arrow.up.arrow.down.circle.fill", isInserted: $showMenuBarExtra) {
             if let stats = torrentManager.sessionStats {
                 Text("\(stats.activeTorrentCount) active, \(stats.pausedTorrentCount) paused")
                 if torrentManager.totalDownloadRate > 0 || torrentManager.totalUploadRate > 0 {
