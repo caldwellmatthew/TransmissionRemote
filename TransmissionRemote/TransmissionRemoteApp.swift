@@ -14,10 +14,6 @@ struct TransmissionRemoteApp: App {
     @State private var torrentManager = TorrentManager()
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
-    init() {
-        UserDefaults.standard.register(defaults: ["notifyOnCompletion": true])
-    }
-
     var body: some Scene {
         Window("Transmission Remote", id: "main") {
             TorrentListView()
@@ -91,6 +87,7 @@ struct TransmissionRemoteApp: App {
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UserDefaults.standard.register(defaults: ["notifyOnCompletion": true])
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
