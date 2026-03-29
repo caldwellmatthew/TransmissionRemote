@@ -1,4 +1,17 @@
 import SwiftUI
+import UniformTypeIdentifiers
+
+private struct TorrentFileDrop: Transferable {
+    let url: URL
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(importedContentType: UTType("org.bittorrent.torrent")!) { file in
+            TorrentFileDrop(url: file.file)
+        }
+        FileRepresentation(importedContentType: UTType("com.bittorrent.torrent")!) { file in
+            TorrentFileDrop(url: file.file)
+        }
+    }
+}
 
 struct TorrentListView: View {
     @Environment(TorrentManager.self) private var manager
@@ -140,17 +153,11 @@ struct TorrentListView: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             pendingAddSource = .file(url)
         }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            for provider in providers {
-                _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    guard let url, url.pathExtension.lowercased() == "torrent" else { return }
-                    Task { @MainActor in
-                        pendingAddSource = .file(url)
-                    }
-                }
-            }
+        .dropDestination(for: TorrentFileDrop.self) { items, _ in
+            guard let file = items.first else { return false }
+            pendingAddSource = .file(file.url)
             return true
-        }
+        } isTargeted: { _ in }
         .onReceive(NotificationCenter.default.publisher(for: .openTorrentFile)) { notification in
             if let url = notification.object as? URL {
                 pendingAddSource = .file(url)
