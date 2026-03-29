@@ -20,7 +20,6 @@ struct SettingsView: View {
     @State private var altSpeedTimeBegin = 0
     @State private var altSpeedTimeEnd = 0
     @State private var altSpeedTimeDay = 127
-    @State private var speedSettingsLoaded = false
 
     var body: some View {
         Form {
@@ -143,7 +142,7 @@ struct SettingsView: View {
     }
 
     private func loadSpeedSettings() {
-        guard let s = manager.sessionSettings, !speedSettingsLoaded else { return }
+        guard let s = manager.sessionSettings else { return }
         speedLimitDown = s.speedLimitDown
         speedLimitDownEnabled = s.speedLimitDownEnabled
         speedLimitUp = s.speedLimitUp
@@ -155,6 +154,5 @@ struct SettingsView: View {
         altSpeedTimeBegin = s.altSpeedTimeBegin
         altSpeedTimeEnd = s.altSpeedTimeEnd
         altSpeedTimeDay = s.altSpeedTimeDay
-        speedSettingsLoaded = true
     }
 }
