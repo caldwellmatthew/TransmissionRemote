@@ -426,7 +426,7 @@ private struct PeersTab: View {
                 Text(peer.clientName)
                     .lineLimit(1)
             }
-            .width(min: 80, ideal: 500)
+            .width(min: 80, ideal: 150)
 
             TableColumn("Progress") { peer in
                 Text("\(Int(peer.progress * 100))%")
