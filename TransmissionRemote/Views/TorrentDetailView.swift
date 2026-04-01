@@ -235,13 +235,157 @@ private struct InfoTab: View {
 
 // MARK: - Files Tab
 
-private struct FileRow: Identifiable {
-    let id: Int
+private enum WantedState {
+    case yes, no, mixed
+
+    var isOn: Bool { self == .yes }
+}
+
+private enum PriorityState: Equatable {
+    case low, normal, high, mixed
+
+    init(raw: Int) {
+        switch raw {
+        case -1: self = .low
+        case 1:  self = .high
+        default: self = .normal
+        }
+    }
+
+    var rawValue: Int? {
+        switch self {
+        case .low: return -1
+        case .normal: return 0
+        case .high: return 1
+        case .mixed: return nil
+        }
+    }
+}
+
+private struct FileNode: Identifiable {
+    let id: String
     let name: String
+    let children: [FileNode]?
+    let fileIndex: Int?
     let size: Int64
     let progress: Double
-    let wanted: Bool
-    let priority: Int
+    let wanted: WantedState
+    let priority: PriorityState
+
+    var isDirectory: Bool { children != nil }
+
+    var allFileIndices: [Int] {
+        if let fileIndex { return [fileIndex] }
+        return children?.flatMap(\.allFileIndices) ?? []
+    }
+
+    static func buildTree(files: [TorrentFile], stats: [TorrentFileStat]) -> [FileNode] {
+        class MutableNode {
+            let name: String
+            var children: [String: MutableNode] = [:]
+            var childOrder: [String] = []
+            var fileIndex: Int?
+            var fileLength: Int64 = 0
+            var bytesCompleted: Int64 = 0
+            var wanted: Bool = true
+            var priority: Int = 0
+            init(name: String) { self.name = name }
+        }
+
+        let root = MutableNode(name: "")
+
+        for (index, file) in files.enumerated() {
+            let components = file.name.split(separator: "/").map(String.init)
+            let stat = index < stats.count ? stats[index] : nil
+            var current = root
+            for (depth, component) in components.enumerated() {
+                let isLeaf = depth == components.count - 1
+                if current.children[component] == nil {
+                    current.children[component] = MutableNode(name: component)
+                    current.childOrder.append(component)
+                }
+                let child = current.children[component]!
+                if isLeaf {
+                    child.fileIndex = index
+                    child.fileLength = file.length
+                    child.bytesCompleted = file.bytesCompleted
+                    child.wanted = stat?.wanted ?? true
+                    child.priority = stat?.priority ?? 0
+                }
+                current = child
+            }
+        }
+
+        func convert(_ node: MutableNode, pathPrefix: String) -> FileNode {
+            if node.children.isEmpty {
+                let progress = node.fileLength > 0 ? Double(node.bytesCompleted) / Double(node.fileLength) : 0
+                return FileNode(
+                    id: pathPrefix + node.name,
+                    name: node.name,
+                    children: nil,
+                    fileIndex: node.fileIndex,
+                    size: node.fileLength,
+                    progress: progress,
+                    wanted: node.wanted ? .yes : .no,
+                    priority: PriorityState(raw: node.priority)
+                )
+            }
+
+            let prefix = pathPrefix.isEmpty ? node.name + "/" : pathPrefix + node.name + "/"
+            let childNodes = node.childOrder.map { convert(node.children[$0]!, pathPrefix: prefix) }
+
+            let totalSize = childNodes.reduce(Int64(0)) { $0 + $1.size }
+            let weightedProgress = totalSize > 0
+                ? childNodes.reduce(0.0) { $0 + $1.progress * Double($1.size) } / Double(totalSize)
+                : 0.0
+
+            let allWanted = childNodes.allSatisfy { $0.wanted == .yes }
+            let noneWanted = childNodes.allSatisfy { $0.wanted == .no }
+            let wantedState: WantedState = allWanted ? .yes : noneWanted ? .no : .mixed
+
+            let priorities = Set(childNodes.map(\.priority))
+            let priorityState: PriorityState = priorities.count == 1 ? priorities.first! : .mixed
+
+            return FileNode(
+                id: pathPrefix + node.name,
+                name: node.name,
+                children: childNodes,
+                fileIndex: nil,
+                size: totalSize,
+                progress: weightedProgress,
+                wanted: wantedState,
+                priority: priorityState
+            )
+        }
+
+        return root.childOrder.map { convert(root.children[$0]!, pathPrefix: "") }
+    }
+}
+
+private struct FileTreeRows: TableRowContent {
+    let nodes: [FileNode]
+    @Binding var expanded: Set<String>
+
+    var tableRowBody: some TableRowContent<FileNode> {
+        ForEach(nodes) { node in
+            if let children = node.children {
+                DisclosureTableRow(node, isExpanded: Binding(
+                    get: { expanded.contains(node.id) },
+                    set: { isExpanded in
+                        if isExpanded {
+                            expanded.insert(node.id)
+                        } else {
+                            expanded.remove(node.id)
+                        }
+                    }
+                )) {
+                    FileTreeRows(nodes: children, expanded: $expanded)
+                }
+            } else {
+                TableRow(node)
+            }
+        }
+    }
 }
 
 private struct FilesTab: View {
@@ -250,104 +394,78 @@ private struct FilesTab: View {
     var onChanged: () async -> Void
     @Environment(TorrentManager.self) private var manager
     @State private var actionError: String?
+    @State private var expandedNodes: Set<String> = []
+    @State private var hasInitializedExpansion = false
 
-    private var fileRows: [FileRow] {
+    private var fileTree: [FileNode] {
         guard let files = torrent.files else { return [] }
         let stats = torrent.fileStats ?? []
-        return files.enumerated().map { i, file in
-            let stat = i < stats.count ? stats[i] : nil
-            let progress = file.length > 0 ? Double(file.bytesCompleted) / Double(file.length) : 0
-            return FileRow(
-                id: i,
-                name: (file.name as NSString).lastPathComponent,
-                size: file.length,
-                progress: progress,
-                wanted: stat?.wanted ?? true,
-                priority: stat?.priority ?? 0
-            )
-        }
+        return FileNode.buildTree(files: files, stats: stats)
     }
 
     var body: some View {
-        Table(of: FileRow.self) {
-            TableColumn("Name") { row in
-                Text(row.name)
-                    .lineLimit(1)
-                    .help(row.name)
+        Table(of: FileNode.self) {
+            TableColumn("Name") { node in
+                Label {
+                    Text(node.name)
+                        .lineLimit(1)
+                        .help(node.id)
+                } icon: {
+                    Image(systemName: node.isDirectory ? "folder.fill" : "doc")
+                        .foregroundStyle(node.isDirectory ? .blue : .secondary)
+                }
             }
             .width(min: 200, ideal: 300)
 
-            TableColumn("Size") { row in
-                Text(formatBytes(row.size))
+            TableColumn("Size") { node in
+                Text(formatBytes(node.size))
                     .monospacedDigit()
             }
             .width(min: 60, ideal: 70)
 
-            TableColumn("Progress") { row in
+            TableColumn("Progress") { node in
                 HStack(spacing: 6) {
                     ZStack(alignment: .leading) {
                         Capsule().fill(.tertiary)
-                        Capsule().fill(.tint).scaleEffect(x: row.progress, anchor: .leading)
+                        Capsule().fill(.tint).scaleEffect(x: node.progress, anchor: .leading)
                     }
                     .frame(height: 6)
-                    Text("\(Int(row.progress * 100))%")
+                    Text("\(Int(node.progress * 100))%")
                         .monospacedDigit()
                         .frame(width: 40, alignment: .trailing)
                 }
             }
             .width(min: 80, ideal: 120)
 
-            TableColumn("Download") { row in
+            TableColumn("Download") { node in
                 HStack {
                     Spacer()
-                    Toggle("", isOn: Binding(
-                        get: { row.wanted },
-                        set: { newValue in
-                            Task {
-                                do {
-                                    try await manager.setFileWanted(torrentID: torrentID, fileIndex: row.id, wanted: newValue)
-                                } catch {
-                                    actionError = error.localizedDescription
-                                }
-                                await onChanged()
-                            }
-                        }
-                    ))
-                    .labelsHidden()
+                    wantedControl(for: node)
                     Spacer()
                 }
             }
             .width(min: 40, ideal: 55)
 
-            TableColumn("Priority") { row in
-                Picker("", selection: Binding(
-                    get: { row.priority },
-                    set: { newValue in
-                        Task {
-                            do {
-                                try await manager.setFilePriority(torrentID: torrentID, fileIndex: row.id, priority: newValue)
-                            } catch {
-                                actionError = error.localizedDescription
-                            }
-                            await onChanged()
-                        }
-                    }
-                )) {
-                    Text("↓").tag(-1)
-                    Text("—").tag(0)
-                    Text("↑").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(maxWidth: 80)
+            TableColumn("Priority") { node in
+                priorityControl(for: node)
             }
             .width(min: 70, ideal: 85)
         } rows: {
-            ForEach(fileRows) { row in
-                TableRow(row)
-            }
+            FileTreeRows(nodes: fileTree, expanded: $expandedNodes)
         }
         .scrollIndicators(.hidden)
+        .onChange(of: torrent.files) {
+            if !hasInitializedExpansion {
+                expandedNodes = collectDirectoryIDs(fileTree)
+                hasInitializedExpansion = true
+            }
+        }
+        .onAppear {
+            if !hasInitializedExpansion {
+                expandedNodes = collectDirectoryIDs(fileTree)
+                hasInitializedExpansion = true
+            }
+        }
         .alert("Error", isPresented: Binding(
             get: { actionError != nil },
             set: { if !$0 { actionError = nil } }
@@ -356,6 +474,80 @@ private struct FilesTab: View {
         } message: {
             Text(actionError ?? "")
         }
+    }
+
+    @ViewBuilder
+    private func wantedControl(for node: FileNode) -> some View {
+        switch node.wanted {
+        case .yes, .no:
+            Toggle("", isOn: Binding(
+                get: { node.wanted.isOn },
+                set: { newValue in
+                    Task {
+                        do {
+                            try await manager.setFilesWanted(torrentID: torrentID, fileIndices: node.allFileIndices, wanted: newValue)
+                        } catch {
+                            actionError = error.localizedDescription
+                        }
+                        await onChanged()
+                    }
+                }
+            ))
+            .labelsHidden()
+        case .mixed:
+            Button {
+                Task {
+                    do {
+                        try await manager.setFilesWanted(torrentID: torrentID, fileIndices: node.allFileIndices, wanted: true)
+                    } catch {
+                        actionError = error.localizedDescription
+                    }
+                    await onChanged()
+                }
+            } label: {
+                Image(systemName: "minus.square.fill")
+                    .foregroundStyle(.secondary)
+                    .imageScale(.large)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func priorityControl(for node: FileNode) -> some View {
+        Picker("", selection: Binding(
+            get: { node.priority.rawValue ?? -2 },
+            set: { newValue in setPriority(newValue, for: node) }
+        )) {
+            Text("↓").tag(-1)
+            Text("—").tag(0)
+            Text("↑").tag(1)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: 80)
+    }
+
+    private func setPriority(_ priority: Int, for node: FileNode) {
+        Task {
+            do {
+                try await manager.setFilePriority(torrentID: torrentID, fileIndices: node.allFileIndices, priority: priority)
+            } catch {
+                actionError = error.localizedDescription
+            }
+            await onChanged()
+        }
+    }
+
+    private func collectDirectoryIDs(_ nodes: [FileNode]) -> Set<String> {
+        var ids = Set<String>()
+        for node in nodes {
+            if let children = node.children {
+                ids.insert(node.id)
+                ids.formUnion(collectDirectoryIDs(children))
+            }
+        }
+        return ids
     }
 }
 

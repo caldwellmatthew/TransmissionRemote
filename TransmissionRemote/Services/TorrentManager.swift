@@ -305,16 +305,16 @@ final class TorrentManager {
         await refresh()
     }
 
-    func setFileWanted(torrentID: Int, fileIndex: Int, wanted: Bool) async throws {
+    func setFilesWanted(torrentID: Int, fileIndices: [Int], wanted: Bool) async throws {
         if wanted {
-            try await client.setFilesWanted(id: torrentID, fileIndices: [fileIndex])
+            try await client.setFilesWanted(id: torrentID, fileIndices: fileIndices)
         } else {
-            try await client.setFilesUnwanted(id: torrentID, fileIndices: [fileIndex])
+            try await client.setFilesUnwanted(id: torrentID, fileIndices: fileIndices)
         }
     }
 
-    func setFilePriority(torrentID: Int, fileIndex: Int, priority: Int) async throws {
-        try await client.setFilePriority(id: torrentID, fileIndices: [fileIndex], priority: priority)
+    func setFilePriority(torrentID: Int, fileIndices: [Int], priority: Int) async throws {
+        try await client.setFilePriority(id: torrentID, fileIndices: fileIndices, priority: priority)
     }
 
     func toggleTurtleMode() async {
