@@ -396,12 +396,7 @@ private struct FilesTab: View {
     @State private var actionError: String?
     @State private var expandedNodes: Set<String> = []
     @State private var hasInitializedExpansion = false
-
-    private var fileTree: [FileNode] {
-        guard let files = torrent.files else { return [] }
-        let stats = torrent.fileStats ?? []
-        return FileNode.buildTree(files: files, stats: stats)
-    }
+    @State private var fileTree: [FileNode] = []
 
     var body: some View {
         Table(of: FileNode.self) {
@@ -454,18 +449,9 @@ private struct FilesTab: View {
             FileTreeRows(nodes: fileTree, expanded: $expandedNodes)
         }
         .scrollIndicators(.hidden)
-        .onChange(of: torrent.files) {
-            if !hasInitializedExpansion {
-                expandedNodes = collectDirectoryIDs(fileTree)
-                hasInitializedExpansion = true
-            }
-        }
-        .onAppear {
-            if !hasInitializedExpansion {
-                expandedNodes = collectDirectoryIDs(fileTree)
-                hasInitializedExpansion = true
-            }
-        }
+        .onChange(of: torrent.files) { rebuildTree() }
+        .onChange(of: torrent.fileStats) { rebuildTree() }
+        .onAppear { rebuildTree() }
         .alert("Error", isPresented: Binding(
             get: { actionError != nil },
             set: { if !$0 { actionError = nil } }
@@ -536,6 +522,16 @@ private struct FilesTab: View {
                 actionError = error.localizedDescription
             }
             await onChanged()
+        }
+    }
+
+    private func rebuildTree() {
+        let files = torrent.files ?? []
+        let stats = torrent.fileStats ?? []
+        fileTree = FileNode.buildTree(files: files, stats: stats)
+        if !hasInitializedExpansion {
+            expandedNodes = collectDirectoryIDs(fileTree)
+            hasInitializedExpansion = true
         }
     }
 
