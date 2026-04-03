@@ -206,19 +206,7 @@ struct TorrentListView: View {
                 .width(min: 200)
 
                 TableColumn("Progress", value: \.percentDone) { torrent in
-                    HStack(spacing: 6) {
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(.tertiary)
-                            Capsule()
-                                .fill(.tint)
-                                .scaleEffect(x: torrent.percentDone, anchor: .leading)
-                        }
-                        .frame(height: 6)
-                        Text("\(Int(torrent.percentDone * 100))%")
-                            .monospacedDigit()
-                            .frame(width: 40, alignment: .trailing)
-                    }
+                    ProgressCell(torrent: torrent)
                 }
                 .width(min: 80, ideal: 110, max: 160)
                 .customizationID("progress")
@@ -771,6 +759,28 @@ struct TorrentListView: View {
         case \Torrent.uploadRatio:  "uploadRatio"
         case \Torrent.addedDate:    "addedDate"
         default:                    "name"
+        }
+    }
+}
+
+private struct ProgressCell: View {
+    let torrent: Torrent
+
+    var body: some View {
+        let isChecking = torrent.status == .checking || torrent.status == .checkWait
+        let progress = isChecking ? (torrent.recheckProgress ?? 0) : torrent.percentDone
+        HStack(spacing: 6) {
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.tertiary)
+                Capsule()
+                    .fill(isChecking ? AnyShapeStyle(.orange) : AnyShapeStyle(.tint))
+                    .scaleEffect(x: progress, anchor: .leading)
+            }
+            .frame(height: 6)
+            Text("\(Int(progress * 100))%")
+                .monospacedDigit()
+                .frame(width: 40, alignment: .trailing)
         }
     }
 }
