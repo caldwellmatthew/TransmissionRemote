@@ -56,30 +56,39 @@ struct TransmissionRemoteApp: App {
         .defaultSize(width: 750, height: 550)
 
         MenuBarExtra("Transmission Remote", systemImage: "arrow.up.arrow.down.circle.fill", isInserted: $showMenuBarExtra) {
-            if let stats = torrentManager.sessionStats {
-                Text("\(stats.activeTorrentCount) active, \(stats.pausedTorrentCount) paused")
-                if torrentManager.totalDownloadRate > 0 || torrentManager.totalUploadRate > 0 {
-                    Text("↓ \(formatRate(torrentManager.totalDownloadRate))  ↑ \(formatRate(torrentManager.totalUploadRate))")
-                }
-                Divider()
-            }
-            Toggle("Turtle Mode", isOn: Binding(
-                get: { torrentManager.isTurtleModeEnabled },
-                set: { _ in Task { await torrentManager.toggleTurtleMode() } }
-            ))
-            Divider()
-            SettingsLink {
-                Text("Settings...")
-            }
-            Divider()
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
+            MenuBarContent()
+                .environment(torrentManager)
         }
 
         Settings {
             SettingsView()
                 .environment(torrentManager)
+        }
+    }
+}
+
+private struct MenuBarContent: View {
+    @Environment(TorrentManager.self) private var manager
+
+    var body: some View {
+        if let stats = manager.sessionStats {
+            Text("\(stats.activeTorrentCount) active, \(stats.pausedTorrentCount) paused")
+            if manager.totalDownloadRate > 0 || manager.totalUploadRate > 0 {
+                Text("↓ \(formatRate(manager.totalDownloadRate))  ↑ \(formatRate(manager.totalUploadRate))")
+            }
+            Divider()
+        }
+        Toggle("Turtle Mode", isOn: Binding(
+            get: { manager.isTurtleModeEnabled },
+            set: { _ in Task { await manager.toggleTurtleMode() } }
+        ))
+        Divider()
+        SettingsLink {
+            Text("Settings...")
+        }
+        Divider()
+        Button("Quit") {
+            NSApplication.shared.terminate(nil)
         }
     }
 }
