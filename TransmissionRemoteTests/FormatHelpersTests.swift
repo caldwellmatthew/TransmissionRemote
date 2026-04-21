@@ -2,6 +2,7 @@ import Testing
 import Foundation
 @testable import TransmissionRemote
 
+@MainActor
 @Suite("FormatHelpers")
 struct FormatHelpersTests {
 

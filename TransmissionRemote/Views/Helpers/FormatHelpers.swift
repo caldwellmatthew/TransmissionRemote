@@ -1,17 +1,33 @@
 import Foundation
 
+@MainActor private let byteFormatter: ByteCountFormatter = {
+    let f = ByteCountFormatter()
+    f.countStyle = .file
+    return f
+}()
+
+@MainActor private let rateFormatter: ByteCountFormatter = {
+    let f = ByteCountFormatter()
+    f.countStyle = .file
+    f.allowedUnits = [.useKB, .useMB, .useGB]
+    return f
+}()
+
+@MainActor private let relativeDateFormatter: RelativeDateTimeFormatter = {
+    let f = RelativeDateTimeFormatter()
+    f.unitsStyle = .abbreviated
+    return f
+}()
+
+@MainActor
 func formatBytes(_ bytes: Int64) -> String {
-    let formatter = ByteCountFormatter()
-    formatter.countStyle = .file
-    return formatter.string(fromByteCount: bytes)
+    byteFormatter.string(fromByteCount: bytes)
 }
 
+@MainActor
 func formatRate(_ bytesPerSec: Int, showZero: Bool = false) -> String {
     guard bytesPerSec > 0 else { return showZero ? "0 KB/s" : "" }
-    let formatter = ByteCountFormatter()
-    formatter.countStyle = .file
-    formatter.allowedUnits = [.useKB, .useMB, .useGB]
-    return formatter.string(fromByteCount: Int64(bytesPerSec)) + "/s"
+    return rateFormatter.string(fromByteCount: Int64(bytesPerSec)) + "/s"
 }
 
 func formatETA(_ seconds: Int) -> String {
@@ -34,12 +50,11 @@ func formatETA(_ seconds: Int) -> String {
     }
 }
 
+@MainActor
 func formatDate(_ unixTimestamp: Int) -> String {
     guard unixTimestamp > 0 else { return "" }
     let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
-    let formatter = RelativeDateTimeFormatter()
-    formatter.unitsStyle = .abbreviated
-    return formatter.localizedString(for: date, relativeTo: .now)
+    return relativeDateFormatter.localizedString(for: date, relativeTo: .now)
 }
 
 func formatAbsoluteDate(_ unixTimestamp: Int) -> String {
@@ -48,12 +63,11 @@ func formatAbsoluteDate(_ unixTimestamp: Int) -> String {
     return date.formatted(.dateTime.month(.twoDigits).day(.twoDigits).year(.defaultDigits))
 }
 
+@MainActor
 func formatRelativeDate(_ unixTimestamp: Int) -> String {
     guard unixTimestamp > 0 else { return "" }
     let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
-    let formatter = RelativeDateTimeFormatter()
-    formatter.unitsStyle = .abbreviated
-    return formatter.localizedString(for: date, relativeTo: .now)
+    return relativeDateFormatter.localizedString(for: date, relativeTo: .now)
 }
 
 func formatDuration(_ totalSeconds: Int) -> String {
