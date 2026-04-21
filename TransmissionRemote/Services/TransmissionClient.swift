@@ -5,6 +5,8 @@ actor TransmissionClient {
     let username: String?
     let password: String?
     private var sessionId: String?
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
 
     init(endpoint: URL, username: String?, password: String?) {
         self.endpoint = endpoint
@@ -44,7 +46,7 @@ actor TransmissionClient {
             arguments: TorrentGetArgs(fields: fields)
         )
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(TorrentGetResponse.self, from: data)
+        let response = try decoder.decode(TorrentGetResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -57,7 +59,7 @@ actor TransmissionClient {
             arguments: TorrentGetArgs(ids: [id], fields: Torrent.detailFields)
         )
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(TorrentGetResponse.self, from: data)
+        let response = try decoder.decode(TorrentGetResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -69,7 +71,7 @@ actor TransmissionClient {
     func getSessionStats() async throws -> SessionStats {
         let body = RPCRequest(method: "session-stats", arguments: nil as [String: String]?)
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SessionStatsResponse.self, from: data)
+        let response = try decoder.decode(SessionStatsResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -84,7 +86,7 @@ actor TransmissionClient {
             arguments: ["fields": ["download-dir"]] as [String: [String]]
         )
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SessionInfoResponse.self, from: data)
+        let response = try decoder.decode(SessionInfoResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -105,7 +107,7 @@ actor TransmissionClient {
             ]] as [String: [String]]
         )
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SessionSettingsResponse.self, from: data)
+        let response = try decoder.decode(SessionSettingsResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -115,7 +117,7 @@ actor TransmissionClient {
     func setSession(_ arguments: SessionSetArgs) async throws {
         let body = RPCRequest(method: "session-set", arguments: arguments)
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
+        let response = try decoder.decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -141,7 +143,7 @@ actor TransmissionClient {
     private func addTorrent(arguments: TorrentAddOptions) async throws -> String {
         let body = RPCRequest(method: "torrent-add", arguments: arguments)
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(TorrentAddResponse.self, from: data)
+        let response = try decoder.decode(TorrentAddResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -166,7 +168,7 @@ actor TransmissionClient {
             arguments: TorrentRemoveArgs(ids: ids, deleteLocalData: deleteLocalData)
         )
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
+        let response = try decoder.decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -202,7 +204,7 @@ actor TransmissionClient {
             arguments: SetLocationArgs(ids: ids, location: location, move: move)
         )
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
+        let response = try decoder.decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -251,7 +253,7 @@ actor TransmissionClient {
     private func setTorrent(_ arguments: TorrentSetArgs) async throws {
         let body = RPCRequest(method: "torrent-set", arguments: arguments)
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
+        let response = try decoder.decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -260,7 +262,7 @@ actor TransmissionClient {
     private func performAction(_ method: String, ids: [Int]) async throws {
         let body = RPCRequest(method: method, arguments: ["ids": ids])
         let data = try await callRPC(body: body)
-        let response = try JSONDecoder().decode(SimpleResponse.self, from: data)
+        let response = try decoder.decode(SimpleResponse.self, from: data)
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
@@ -269,7 +271,7 @@ actor TransmissionClient {
     // MARK: - RPC Transport
 
     private func callRPC<T: Encodable & Sendable>(body: T) async throws -> Data {
-        let jsonData = try JSONEncoder().encode(body)
+        let jsonData = try encoder.encode(body)
         return try await sendRequest(body: jsonData)
     }
 
