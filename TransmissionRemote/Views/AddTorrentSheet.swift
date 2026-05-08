@@ -15,7 +15,6 @@ struct AddTorrentSheet: View {
 
     let source: Source
     let manager: TorrentManager
-    var onComplete: (String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var linkText = ""
@@ -23,9 +22,6 @@ struct AddTorrentSheet: View {
     @State private var startPaused = false
     @State private var priority = 0
     @State private var labelsText = ""
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-    @State private var showingError = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -66,13 +62,9 @@ struct AddTorrentSheet: View {
             }
             .padding()
         }
-        .alert("Error Adding Torrent", isPresented: $showingError, actions: {}) {
-            Text(errorMessage ?? "")
-        }
         .task {
             downloadDir = await manager.getDefaultDownloadDir()
             if case .link(let str) = source { linkText = str }
-            isLoading = false
         }
     }
 
@@ -94,21 +86,13 @@ struct AddTorrentSheet: View {
     }
 
     private func addTorrent() {
-        Task {
-            do {
-                switch source {
-                case .file(let url):
-                    _ = try await manager.addTorrent(fileURL: url, options: options)
-                case .link:
-                    let trimmed = linkText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    _ = try await manager.addTorrent(url: trimmed, options: options)
-                }
-                onComplete(nil)
-                dismiss()
-            } catch {
-                errorMessage = error.localizedDescription
-                showingError = true
-            }
+        switch source {
+        case .file(let url):
+            manager.addTorrentInBackground(fileURL: url, options: options)
+        case .link:
+            let trimmed = linkText.trimmingCharacters(in: .whitespacesAndNewlines)
+            manager.addTorrentInBackground(url: trimmed, options: options)
         }
+        dismiss()
     }
 }

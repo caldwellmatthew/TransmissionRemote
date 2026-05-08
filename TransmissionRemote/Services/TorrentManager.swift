@@ -13,6 +13,7 @@ final class TorrentManager {
     private(set) var sessionSettings: SessionSettings?
     private(set) var connectionState: ConnectionState = .disconnected
     private(set) var errorMessage: String?
+    private(set) var pendingAddCount: Int = 0
     var actionError: String?
 
     var selectedTorrentIDs: Set<Int> = []
@@ -223,16 +224,34 @@ final class TorrentManager {
 
     // MARK: - Actions
 
-    func addTorrent(fileURL: URL, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
-        let name = try await client.addTorrent(fileURL: fileURL, options: options)
-        await refresh()
-        return name
+    func addTorrentInBackground(fileURL: URL, options: TorrentAddOptions = TorrentAddOptions()) {
+        pendingAddCount += 1
+        Task {
+            do {
+                _ = try await client.addTorrent(fileURL: fileURL, options: options)
+            } catch is CancellationError {
+            } catch let error as URLError where error.code == .cancelled {
+            } catch {
+                actionError = error.localizedDescription
+            }
+            pendingAddCount -= 1
+            await refresh()
+        }
     }
 
-    func addTorrent(url: String, options: TorrentAddOptions = TorrentAddOptions()) async throws -> String {
-        let name = try await client.addTorrent(url: url, options: options)
-        await refresh()
-        return name
+    func addTorrentInBackground(url: String, options: TorrentAddOptions = TorrentAddOptions()) {
+        pendingAddCount += 1
+        Task {
+            do {
+                _ = try await client.addTorrent(url: url, options: options)
+            } catch is CancellationError {
+            } catch let error as URLError where error.code == .cancelled {
+            } catch {
+                actionError = error.localizedDescription
+            }
+            pendingAddCount -= 1
+            await refresh()
+        }
     }
 
     func startSelected() async {

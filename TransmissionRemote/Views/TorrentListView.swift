@@ -91,6 +91,18 @@ struct TorrentListView: View {
                     }
                     .foregroundStyle(.tertiary)
 
+                    if manager.pendingAddCount > 0 {
+                        HStack(spacing: 5) {
+                            ProgressView()
+                                .controlSize(.small)
+                                .scaleEffect(0.7)
+                            Text(manager.pendingAddCount == 1
+                                 ? "Adding torrent…"
+                                 : "Adding \(manager.pendingAddCount) torrents…")
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+
                     Spacer()
 
                     Button {
@@ -141,9 +153,7 @@ struct TorrentListView: View {
             }
         }
         .sheet(item: $pendingAddSource) { source in
-            AddTorrentSheet(source: source, manager: manager) { error in
-                if let error { manager.actionError = error }
-            }
+            AddTorrentSheet(source: source, manager: manager)
         }
         .fileImporter(
             isPresented: $showingFileImporter,
