@@ -104,6 +104,8 @@ actor TransmissionClient {
                 "alt-speed-down", "alt-speed-up", "alt-speed-enabled",
                 "alt-speed-time-enabled", "alt-speed-time-begin",
                 "alt-speed-time-end", "alt-speed-time-day",
+                "peer-port", "peer-port-random-on-start",
+                "port-forwarding-enabled",
             ]] as [String: [String]]
         )
         let data = try await callRPC(body: body)
@@ -121,6 +123,16 @@ actor TransmissionClient {
         guard response.result == "success" else {
             throw TransmissionError.rpcError(response.result)
         }
+    }
+
+    func testPort() async throws -> Bool {
+        let body = RPCRequest(method: "port-test", arguments: nil as [String: String]?)
+        let data = try await callRPC(body: body)
+        let response = try decoder.decode(PortTestResponse.self, from: data)
+        guard response.result == "success" else {
+            throw TransmissionError.rpcError(response.result)
+        }
+        return response.arguments.portIsOpen
     }
 
     // MARK: - Add Torrent
@@ -417,6 +429,9 @@ struct SessionSetArgs: Encodable, Sendable {
     var altSpeedTimeBegin: Int?
     var altSpeedTimeEnd: Int?
     var altSpeedTimeDay: Int?
+    var peerPort: Int?
+    var peerPortRandomOnStart: Bool?
+    var portForwardingEnabled: Bool?
 
     enum CodingKeys: String, CodingKey {
         case speedLimitDown = "speed-limit-down"
@@ -430,12 +445,26 @@ struct SessionSetArgs: Encodable, Sendable {
         case altSpeedTimeBegin = "alt-speed-time-begin"
         case altSpeedTimeEnd = "alt-speed-time-end"
         case altSpeedTimeDay = "alt-speed-time-day"
+        case peerPort = "peer-port"
+        case peerPortRandomOnStart = "peer-port-random-on-start"
+        case portForwardingEnabled = "port-forwarding-enabled"
     }
 }
 
 private struct SessionSettingsResponse: Decodable {
     let result: String
     let arguments: SessionSettings
+}
+
+private struct PortTestResponse: Decodable {
+    let result: String
+    struct Arguments: Decodable {
+        let portIsOpen: Bool
+        enum CodingKeys: String, CodingKey {
+            case portIsOpen = "port-is-open"
+        }
+    }
+    let arguments: Arguments
 }
 
 struct SessionInfo: Decodable, Sendable {

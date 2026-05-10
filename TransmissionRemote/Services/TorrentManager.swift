@@ -349,6 +349,10 @@ final class TorrentManager {
         await refresh()
     }
 
+    func testPort() async -> Bool? {
+        try? await client.testPort()
+    }
+
     func setTorrentSpeedLimits(id: Int, downloadLimit: Int?, downloadLimited: Bool?,
                                uploadLimit: Int?, uploadLimited: Bool?) async {
         await performAction {

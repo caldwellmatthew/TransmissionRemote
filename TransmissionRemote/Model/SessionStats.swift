@@ -18,6 +18,9 @@ struct SessionSettings: Decodable, Sendable {
     let altSpeedTimeBegin: Int
     let altSpeedTimeEnd: Int
     let altSpeedTimeDay: Int
+    let peerPort: Int
+    let peerPortRandomOnStart: Bool
+    let portForwardingEnabled: Bool
 
     enum CodingKeys: String, CodingKey {
         case speedLimitDown = "speed-limit-down"
@@ -31,5 +34,8 @@ struct SessionSettings: Decodable, Sendable {
         case altSpeedTimeBegin = "alt-speed-time-begin"
         case altSpeedTimeEnd = "alt-speed-time-end"
         case altSpeedTimeDay = "alt-speed-time-day"
+        case peerPort = "peer-port"
+        case peerPortRandomOnStart = "peer-port-random-on-start"
+        case portForwardingEnabled = "port-forwarding-enabled"
     }
 }

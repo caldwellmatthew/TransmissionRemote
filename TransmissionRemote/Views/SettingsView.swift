@@ -21,6 +21,15 @@ struct SettingsView: View {
     @State private var altSpeedTimeEnd = 0
     @State private var altSpeedTimeDay = 127
 
+    @State private var peerPort = 0
+    @State private var peerPortRandomOnStart = false
+    @State private var portForwardingEnabled = false
+    @State private var portTestState: PortTestState = .idle
+
+    private enum PortTestState: Equatable {
+        case idle, testing, open, closed, failed
+    }
+
     var body: some View {
         Form {
             Section("Transmission Server") {
@@ -51,6 +60,42 @@ struct SettingsView: View {
                 }
                 Toggle("Show menu bar icon", isOn: $showMenuBarExtra)
                 Toggle("Notify when downloads complete", isOn: $notifyOnCompletion)
+            }
+
+            Section("Port Forwarding") {
+                LabeledContent("Peer port") {
+                    HStack(spacing: 8) {
+                        TextField("", value: $peerPort, format: .number.grouping(.never))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                            .disabled(peerPortRandomOnStart)
+                        Button("Test Port") {
+                            portTestState = .testing
+                            Task {
+                                let result = await manager.testPort()
+                                portTestState = switch result {
+                                case .some(true):  .open
+                                case .some(false): .closed
+                                case .none:        .failed
+                                }
+                            }
+                        }
+                        .disabled(portTestState == .testing)
+                        portTestStatusView
+                    }
+                }
+                Toggle("Pick a random port on start", isOn: $peerPortRandomOnStart)
+                Toggle("Use UPnP / NAT-PMP port forwarding", isOn: $portForwardingEnabled)
+                Button("Apply Port Settings") {
+                    Task {
+                        var args = SessionSetArgs()
+                        args.peerPort = peerPort
+                        args.peerPortRandomOnStart = peerPortRandomOnStart
+                        args.portForwardingEnabled = portForwardingEnabled
+                        await manager.updateSessionSettings(args)
+                        portTestState = .idle
+                    }
+                }
             }
 
             Section("Speed Limits") {
@@ -134,14 +179,15 @@ struct SettingsView: View {
         .frame(width: 400)
         .padding()
         .onChange(of: manager.sessionSettings?.altSpeedEnabled) {
-            loadSpeedSettings()
+            loadSettings()
         }
         .task {
-            loadSpeedSettings()
+            portTestState = .idle
+            loadSettings()
         }
     }
 
-    private func loadSpeedSettings() {
+    private func loadSettings() {
         guard let s = manager.sessionSettings else { return }
         speedLimitDown = s.speedLimitDown
         speedLimitDownEnabled = s.speedLimitDownEnabled
@@ -154,5 +200,31 @@ struct SettingsView: View {
         altSpeedTimeBegin = s.altSpeedTimeBegin
         altSpeedTimeEnd = s.altSpeedTimeEnd
         altSpeedTimeDay = s.altSpeedTimeDay
+        peerPort = s.peerPort
+        peerPortRandomOnStart = s.peerPortRandomOnStart
+        portForwardingEnabled = s.portForwardingEnabled
+    }
+
+    @ViewBuilder
+    private var portTestStatusView: some View {
+        switch portTestState {
+        case .idle:
+            EmptyView()
+        case .testing:
+            ProgressView()
+                .controlSize(.small)
+        case .open:
+            Label("Port is open", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .labelStyle(.titleAndIcon)
+        case .closed:
+            Label("Port is closed", systemImage: "xmark.circle.fill")
+                .foregroundStyle(.red)
+                .labelStyle(.titleAndIcon)
+        case .failed:
+            Label("Test failed", systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .labelStyle(.titleAndIcon)
+        }
     }
 }
