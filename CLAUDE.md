@@ -22,5 +22,5 @@ xcodebuild -scheme TransmissionRemote -configuration Debug build
 - `ProgressView` causes rendering glitches during Table column reorder — use capsule + `scaleEffect` instead
 - Table column builder has 10-column limit — wrap extras in `Group`
 - `.toolbar(removing: .title)` requires macOS 15 — use `.navigationTitle("")` instead
-- Don't give the Name column a `customizationID` to prevent it from participating in reorder
+- Pin the Name column with `.customizationID("name")` + `.disabledCustomizationBehavior(.all)` — omitting the ID makes SwiftUI park it at the end whenever stored customization re-applies
 - Table empty placeholder rows don't fill width if total column ideal widths are too small — use large `ideal:` on flexible columns

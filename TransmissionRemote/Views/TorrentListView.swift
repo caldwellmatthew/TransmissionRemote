@@ -214,6 +214,8 @@ struct TorrentListView: View {
                     }
                 }
                 .width(min: 200)
+                .customizationID("name")
+                .disabledCustomizationBehavior(.all)
 
                 TableColumn("Progress", value: \.percentDone) { torrent in
                     ProgressCell(torrent: torrent)
