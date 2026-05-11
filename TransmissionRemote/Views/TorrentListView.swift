@@ -25,6 +25,7 @@ struct TorrentListView: View {
     @State private var showingRemoveConfirmation = false
     @State private var showingMoveSheet = false
     @State private var moveLocation = ""
+    @State private var showingNewLabelSheet = false
     @State private var columnsReady = UserDefaults.standard.dictionary(forKey: "torrentTableColumnWidths") == nil
 
     init() {
@@ -633,6 +634,38 @@ struct TorrentListView: View {
 
             Divider()
 
+            Menu("Add Label") {
+                let existing = manager.allLabels
+                let presentOnAll = Set(selectedTorrents.dropFirst().reduce(
+                    Set(selectedTorrents.first?.labels ?? [])
+                ) { acc, t in acc.intersection(t.labels) })
+                ForEach(existing, id: \.self) { label in
+                    Button(presentOnAll.contains(label) ? "✓ \(label)" : "  \(label)") {
+                        manager.selectedTorrentIDs = ids
+                        Task { await manager.addLabelToSelected(label) }
+                    }
+                }
+                if !existing.isEmpty { Divider() }
+                Button("New Label...") {
+                    manager.selectedTorrentIDs = ids
+                    showingNewLabelSheet = true
+                }
+            }
+
+            let removable = manager.labelsOnSelection
+            if !removable.isEmpty {
+                Menu("Remove Label") {
+                    ForEach(removable, id: \.self) { label in
+                        Button(label) {
+                            manager.selectedTorrentIDs = ids
+                            Task { await manager.removeLabelFromSelected(label) }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
             if let torrent = selectedTorrents.first, selectedTorrents.count == 1,
                let magnet = torrent.magnetLink, !magnet.isEmpty {
                 Button("Copy Magnet Link") {
@@ -649,6 +682,11 @@ struct TorrentListView: View {
             MoveLocationSheet(location: $moveLocation) { newLocation, move in
                 let ids = Array(manager.selectedTorrentIDs)
                 Task { await manager.setLocation(ids: ids, location: newLocation, move: move) }
+            }
+        }
+        .sheet(isPresented: $showingNewLabelSheet) {
+            NewLabelSheet { label in
+                Task { await manager.addLabelToSelected(label) }
             }
         }
         .background(TableColumnWidthPersister(ready: $columnsReady))

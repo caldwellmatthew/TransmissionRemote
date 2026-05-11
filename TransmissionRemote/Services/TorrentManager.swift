@@ -23,7 +23,7 @@ final class TorrentManager {
     private var client: TransmissionClient
     private var pollTask: Task<Void, Never>?
     private(set) var previousPercentDone: [Int: Double] = [:]
-    private var isRefreshing = false
+    private var refreshTask: Task<Void, Never>?
 
     private var pollInterval: TimeInterval {
         max(1, UserDefaults.standard.double(forKey: "pollInterval").nonZero ?? 5.0)
@@ -135,10 +135,16 @@ final class TorrentManager {
     }
 
     func refresh() async {
-        guard !isRefreshing else { return }
-        isRefreshing = true
-        defer { isRefreshing = false }
+        let previous = refreshTask
+        let task = Task { @MainActor in
+            _ = await previous?.value
+            await self.performRefresh()
+        }
+        refreshTask = task
+        await task.value
+    }
 
+    private func performRefresh() async {
         if connectionState == .disconnected {
             connectionState = .connecting
         }
@@ -321,6 +327,52 @@ final class TorrentManager {
         let ids = Array(selectedTorrentIDs)
         guard !ids.isEmpty else { return }
         await performAction { try await self.client.setBandwidthPriority(ids: ids, priority: priority) }
+        await refresh()
+    }
+
+    /// Labels in use across all torrents, sorted case-insensitively.
+    var allLabels: [String] {
+        let set = Set(torrents.flatMap(\.labels))
+        return set.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    /// Labels present on at least one currently-selected torrent.
+    var labelsOnSelection: [String] {
+        let selected = torrents.filter { selectedTorrentIDs.contains($0.id) }
+        let set = Set(selected.flatMap(\.labels))
+        return set.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    func addLabelToSelected(_ label: String) async {
+        await applyLabelChangeToSelected { current in
+            current.contains(label) ? current : current + [label]
+        }
+    }
+
+    func removeLabelFromSelected(_ label: String) async {
+        await applyLabelChangeToSelected { current in
+            current.filter { $0 != label }
+        }
+    }
+
+    /// Apply a per-torrent label transform to the current selection. Torrents
+    /// whose resulting labels are identical are batched into one RPC call.
+    private func applyLabelChangeToSelected(_ transform: ([String]) -> [String]) async {
+        let selected = torrents.filter { selectedTorrentIDs.contains($0.id) }
+        guard !selected.isEmpty else { return }
+
+        var groups: [[String]: [Int]] = [:]
+        for torrent in selected {
+            let next = transform(torrent.labels)
+            if next != torrent.labels {
+                groups[next, default: []].append(torrent.id)
+            }
+        }
+        guard !groups.isEmpty else { return }
+
+        for (newLabels, ids) in groups {
+            await performAction { try await self.client.setLabels(ids: ids, labels: newLabels) }
+        }
         await refresh()
     }
 

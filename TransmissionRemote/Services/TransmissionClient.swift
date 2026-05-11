@@ -262,6 +262,12 @@ actor TransmissionClient {
         try await setTorrent(args)
     }
 
+    func setLabels(ids: [Int], labels: [String]) async throws {
+        var args = TorrentSetArgs(ids: ids)
+        args.labels = labels
+        try await setTorrent(args)
+    }
+
     private func setTorrent(_ arguments: TorrentSetArgs) async throws {
         let body = RPCRequest(method: "torrent-set", arguments: arguments)
         let data = try await callRPC(body: body)
@@ -369,6 +375,7 @@ private struct TorrentSetArgs: Encodable, Sendable {
     var uploadLimit: Int?
     var uploadLimited: Bool?
     var bandwidthPriority: Int?
+    var labels: [String]?
 
     enum CodingKeys: String, CodingKey {
         case ids
@@ -377,7 +384,7 @@ private struct TorrentSetArgs: Encodable, Sendable {
         case priorityLow = "priority-low"
         case priorityNormal = "priority-normal"
         case priorityHigh = "priority-high"
-        case downloadLimit, downloadLimited, uploadLimit, uploadLimited, bandwidthPriority
+        case downloadLimit, downloadLimited, uploadLimit, uploadLimited, bandwidthPriority, labels
     }
 }
 
