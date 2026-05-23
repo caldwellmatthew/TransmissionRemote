@@ -95,6 +95,48 @@ private struct MenuBarContent: View {
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+    // Intercept file-open and URL Apple Events ourselves. SwiftUI's default
+    // 'odoc' dispatch can tear down and re-create the Window scene to
+    // "deliver" the URL, producing a visible flash before the add-torrent
+    // sheet appears. Installing our own handlers bypasses SwiftUI's URL
+    // routing entirely.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        let aem = NSAppleEventManager.shared()
+        aem.setEventHandler(
+            self,
+            andSelector: #selector(handleOpenDocsAE(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kCoreEventClass),
+            andEventID: AEEventID(kAEOpenDocuments)
+        )
+        aem.setEventHandler(
+            self,
+            andSelector: #selector(handleGetURLAE(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
+
+    @objc func handleOpenDocsAE(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
+        guard let urlList = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject)) else { return }
+        let count = urlList.numberOfItems
+        guard count > 0 else { return }
+        for i in 1...count {
+            guard let item = urlList.atIndex(i),
+                  let urlDesc = item.coerce(toDescriptorType: typeFileURL),
+                  let url = URL(dataRepresentation: urlDesc.data, relativeTo: nil) else { continue }
+            if url.isFileURL, url.pathExtension.lowercased() == "torrent" {
+                NotificationCenter.default.post(name: .openTorrentFile, object: url)
+            }
+        }
+    }
+
+    @objc func handleGetURLAE(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
+        if let urlStr = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
+           let url = URL(string: urlStr), url.scheme == "magnet" {
+            NotificationCenter.default.post(name: .addTorrentLink, object: url.absoluteString)
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         UserDefaults.standard.register(defaults: ["notifyOnCompletion": true])
         let center = UNUserNotificationCenter.current()
@@ -107,15 +149,5 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .sound]
-    }
-
-    func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls {
-            if url.scheme == "magnet" {
-                NotificationCenter.default.post(name: .addTorrentLink, object: url.absoluteString)
-            } else if url.isFileURL, url.pathExtension.lowercased() == "torrent" {
-                NotificationCenter.default.post(name: .openTorrentFile, object: url)
-            }
-        }
     }
 }
