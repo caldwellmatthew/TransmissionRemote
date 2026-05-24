@@ -121,6 +121,9 @@ struct ModelDecodingTests {
             "alt-speed-time-begin": 540,
             "alt-speed-time-end": 1080,
             "alt-speed-time-day": 127,
+            "peer-port": 51413,
+            "peer-port-random-on-start": false,
+            "port-forwarding-enabled": true,
         ]
         let data = try JSONSerialization.data(withJSONObject: json)
         let settings = try JSONDecoder().decode(SessionSettings.self, from: data)
@@ -136,6 +139,9 @@ struct ModelDecodingTests {
         #expect(settings.altSpeedTimeBegin == 540)
         #expect(settings.altSpeedTimeEnd == 1080)
         #expect(settings.altSpeedTimeDay == 127)
+        #expect(settings.peerPort == 51413)
+        #expect(settings.peerPortRandomOnStart == false)
+        #expect(settings.portForwardingEnabled == true)
     }
 
     // MARK: - TorrentTracker
