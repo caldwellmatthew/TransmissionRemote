@@ -47,8 +47,19 @@ struct ModelDecodingTests {
         #expect(torrent.labels == ["linux", "iso"])
     }
 
-    @Test func torrentOptionalFieldsNilWhenAbsent() {
-        let torrent = makeTorrent()
+    @Test func torrentOptionalFieldsNilWhenAbsent() throws {
+        // Build minimal JSON with only the required core fields so we can
+        // verify the decoder leaves optional fields as nil when absent.
+        let json: [String: Any] = [
+            "id": 1, "name": "t", "status": 4, "percentDone": 0.0,
+            "rateDownload": 0, "rateUpload": 0, "totalSize": 0,
+            "eta": -1, "error": 0, "errorString": "", "downloadDir": "/",
+            "addedDate": 0, "doneDate": 0, "uploadRatio": 0.0,
+            "peersConnected": 0, "labels": [] as [String],
+        ]
+        let data = try JSONSerialization.data(withJSONObject: json)
+        let torrent = try JSONDecoder().decode(Torrent.self, from: data)
+
         #expect(torrent.files == nil)
         #expect(torrent.fileStats == nil)
         #expect(torrent.trackers == nil)

@@ -6,7 +6,7 @@ import Foundation
 struct CompletionDetectionTests {
 
     @MainActor
-    private func managerWithPrevious(_ percentDones: [Int: Double]) -> TorrentManager {
+    private func managerWithPrevious(_ percentDones: [String: Double]) -> TorrentManager {
         let manager = TorrentManager(testing: true)
         manager.setPreviousPercentDone(percentDones)
         return manager
@@ -21,7 +21,7 @@ struct CompletionDetectionTests {
     }
 
     @Test @MainActor func detectsNewCompletion() {
-        let manager = managerWithPrevious([1: 0.5, 2: 0.3])
+        let manager = managerWithPrevious(["hash-1": 0.5, "hash-2": 0.3])
         let result = manager.newlyCompleted([
             makeTorrent(id: 1, percentDone: 1.0),
             makeTorrent(id: 2, percentDone: 0.6),
@@ -30,13 +30,13 @@ struct CompletionDetectionTests {
     }
 
     @Test @MainActor func doesNotRenotifyAlreadyCompleted() {
-        let manager = managerWithPrevious([1: 1.0])
+        let manager = managerWithPrevious(["hash-1": 1.0])
         let result = manager.newlyCompleted([makeTorrent(id: 1, percentDone: 1.0)])
         #expect(result.isEmpty)
     }
 
     @Test @MainActor func detectsMultipleCompletions() {
-        let manager = managerWithPrevious([1: 0.9, 2: 0.8, 3: 0.5])
+        let manager = managerWithPrevious(["hash-1": 0.9, "hash-2": 0.8, "hash-3": 0.5])
         let result = manager.newlyCompleted([
             makeTorrent(id: 1, percentDone: 1.0),
             makeTorrent(id: 2, percentDone: 1.0),
@@ -46,7 +46,7 @@ struct CompletionDetectionTests {
     }
 
     @Test @MainActor func newTorrentAppearingComplete() {
-        let manager = managerWithPrevious([1: 0.5])
+        let manager = managerWithPrevious(["hash-1": 0.5])
         let result = manager.newlyCompleted([
             makeTorrent(id: 1, percentDone: 0.6),
             makeTorrent(id: 2, percentDone: 1.0),
@@ -55,8 +55,20 @@ struct CompletionDetectionTests {
     }
 
     @Test @MainActor func removedTorrentIgnored() {
-        let manager = managerWithPrevious([1: 0.5, 2: 0.9])
+        let manager = managerWithPrevious(["hash-1": 0.5, "hash-2": 0.9])
         let result = manager.newlyCompleted([makeTorrent(id: 1, percentDone: 0.6)])
+        #expect(result.isEmpty)
+    }
+
+    /// After the daemon restarts, Transmission renumbers torrent IDs but
+    /// hashStrings stay stable. Previously-completed torrents must not
+    /// re-fire notifications just because their numeric id changed.
+    @Test @MainActor func ignoresIdRenumberingAfterServerRestart() {
+        let manager = managerWithPrevious(["hash-a": 1.0, "hash-b": 1.0])
+        let result = manager.newlyCompleted([
+            makeTorrent(id: 99, percentDone: 1.0, hashString: "hash-a"),
+            makeTorrent(id: 100, percentDone: 1.0, hashString: "hash-b"),
+        ])
         #expect(result.isEmpty)
     }
 }

@@ -22,7 +22,7 @@ final class TorrentManager {
 
     private var client: TransmissionClient
     private var pollTask: Task<Void, Never>?
-    private(set) var previousPercentDone: [Int: Double] = [:]
+    private(set) var previousPercentDone: [String: Double] = [:]
     private var refreshTask: Task<Void, Never>?
 
     private var pollInterval: TimeInterval {
@@ -115,7 +115,7 @@ final class TorrentManager {
     }
 
     /// Test-only: set previous percent done for completion detection tests
-    func setPreviousPercentDone(_ values: [Int: Double]) {
+    func setPreviousPercentDone(_ values: [String: Double]) {
         previousPercentDone = values
     }
 
@@ -161,8 +161,13 @@ final class TorrentManager {
                 checkForCompletions(newTorrents)
             }
 
-            // Update tracking state for next poll
-            previousPercentDone = Dictionary(uniqueKeysWithValues: newTorrents.map { ($0.id, $0.percentDone) })
+            // Update tracking state for next poll. Key by hashString (stable across
+            // server restarts) rather than id (renumbered on daemon restart).
+            previousPercentDone = Dictionary(
+                uniqueKeysWithValues: newTorrents.compactMap { t in
+                    t.hashString.map { ($0, t.percentDone) }
+                }
+            )
             torrents = newTorrents
             connectionState = .connected
             errorMessage = nil
@@ -183,7 +188,8 @@ final class TorrentManager {
         guard !previousPercentDone.isEmpty else { return [] }
 
         return newTorrents.filter { torrent in
-            let wasDone = previousPercentDone[torrent.id].map { $0 >= 1.0 } ?? false
+            guard let hash = torrent.hashString else { return false }
+            let wasDone = previousPercentDone[hash].map { $0 >= 1.0 } ?? false
             return torrent.percentDone >= 1.0 && !wasDone
         }
     }

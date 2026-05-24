@@ -17,7 +17,8 @@ func makeTorrent(
     doneDate: Int = 0,
     uploadRatio: Double = 0.0,
     peersConnected: Int = 0,
-    labels: [String] = []
+    labels: [String] = [],
+    hashString: String? = nil
 ) -> Torrent {
     let json: [String: Any] = [
         "id": id,
@@ -36,6 +37,7 @@ func makeTorrent(
         "uploadRatio": uploadRatio,
         "peersConnected": peersConnected,
         "labels": labels,
+        "hashString": hashString ?? "hash-\(id)",
     ]
     let data = try! JSONSerialization.data(withJSONObject: json)
     return try! JSONDecoder().decode(Torrent.self, from: data)
