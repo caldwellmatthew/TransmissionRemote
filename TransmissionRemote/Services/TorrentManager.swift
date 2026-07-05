@@ -149,13 +149,20 @@ final class TorrentManager {
             connectionState = .connecting
         }
 
+        let client = self.client
         do {
             async let fetchedTorrents = client.getTorrents()
             async let fetchedStats = client.getSessionStats()
             async let fetchedSettings = client.getSessionSettings()
             let newTorrents = try await fetchedTorrents
-            sessionStats = try await fetchedStats
-            sessionSettings = try await fetchedSettings
+            let newStats = try await fetchedStats
+            let newSettings = try await fetchedSettings
+
+            // Drop results that arrive after reconnect() swapped the client,
+            // so old-server state can't leak into the new connection.
+            guard client === self.client else { return }
+            sessionStats = newStats
+            sessionSettings = newSettings
 
             if UserDefaults.standard.bool(forKey: "notifyOnCompletion") {
                 checkForCompletions(newTorrents)
@@ -172,6 +179,7 @@ final class TorrentManager {
             connectionState = .connected
             errorMessage = nil
         } catch {
+            guard client === self.client else { return }
             connectionState = .error
             errorMessage = error.localizedDescription
         }
@@ -211,6 +219,9 @@ final class TorrentManager {
     func reconnect() {
         stopPolling()
         client = TransmissionClient.fromDefaults()
+        // Hashes from the previous server must not seed completion detection,
+        // or every finished torrent on the new server would notify at once.
+        previousPercentDone = [:]
         connectionState = .disconnected
         startPolling()
     }
