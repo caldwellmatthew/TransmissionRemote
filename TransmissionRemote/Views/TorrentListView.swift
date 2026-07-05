@@ -4,12 +4,24 @@ import UniformTypeIdentifiers
 private struct TorrentFileDrop: Transferable {
     let url: URL
     static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(importedContentType: UTType("org.bittorrent.torrent")!) { file in
-            TorrentFileDrop(url: file.file)
+        FileRepresentation(importedContentType: UTType("org.bittorrent.torrent")!) { received in
+            TorrentFileDrop(url: try copyToTemporary(received.file))
         }
-        FileRepresentation(importedContentType: UTType("com.bittorrent.torrent")!) { file in
-            TorrentFileDrop(url: file.file)
+        FileRepresentation(importedContentType: UTType("com.bittorrent.torrent")!) { received in
+            TorrentFileDrop(url: try copyToTemporary(received.file))
         }
+    }
+
+    // The received file is only guaranteed to exist while the importing
+    // closure runs, but it isn't read until the user confirms the add sheet.
+    // Copy it to a location we own so it can't vanish in between.
+    private static func copyToTemporary(_ source: URL) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let destination = dir.appendingPathComponent(source.lastPathComponent)
+        try FileManager.default.copyItem(at: source, to: destination)
+        return destination
     }
 }
 
