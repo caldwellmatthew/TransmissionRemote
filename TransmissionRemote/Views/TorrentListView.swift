@@ -274,7 +274,7 @@ struct TorrentListView: View {
                 .customizationID("ratio")
 
                 TableColumn("Added", value: \.addedDate) { torrent in
-                    Text(formatDate(torrent.addedDate))
+                    Text(formatRelativeDate(torrent.addedDate))
                 }
                 .width(min: 70, ideal: 100, max: 150)
                 .customizationID("added")
@@ -290,7 +290,7 @@ struct TorrentListView: View {
                 .defaultVisibility(.hidden)
 
                 TableColumn("Done Date") { (torrent: Torrent) in
-                    Text(formatDate(torrent.doneDate))
+                    Text(formatRelativeDate(torrent.doneDate))
                 }
                 .width(min: 70, ideal: 100, max: 150)
                 .customizationID("doneDate")
@@ -405,21 +405,21 @@ struct TorrentListView: View {
                 .defaultVisibility(.hidden)
 
                 TableColumn("Last Active") { (torrent: Torrent) in
-                    Text(torrent.activityDate.map { formatDate($0) } ?? "")
+                    Text(torrent.activityDate.map { formatRelativeDate($0) } ?? "")
                 }
                 .width(min: 70, ideal: 100, max: 150)
                 .customizationID("activityDate")
                 .defaultVisibility(.hidden)
 
                 TableColumn("Created") { (torrent: Torrent) in
-                    Text(torrent.dateCreated.map { formatDate($0) } ?? "")
+                    Text(torrent.dateCreated.map { formatRelativeDate($0) } ?? "")
                 }
                 .width(min: 70, ideal: 100, max: 150)
                 .customizationID("dateCreated")
                 .defaultVisibility(.hidden)
 
                 TableColumn("Started") { (torrent: Torrent) in
-                    Text(torrent.startDate.map { formatDate($0) } ?? "")
+                    Text(torrent.startDate.map { formatRelativeDate($0) } ?? "")
                 }
                 .width(min: 70, ideal: 100, max: 150)
                 .customizationID("startDate")

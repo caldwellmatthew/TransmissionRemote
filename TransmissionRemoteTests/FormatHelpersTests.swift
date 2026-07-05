@@ -108,22 +108,14 @@ struct FormatHelpersTests {
         #expect(formatPriority(99) == "Normal")
     }
 
-    // MARK: - formatDate / formatRelativeDate
-
-    @Test func dateZeroReturnsEmpty() {
-        #expect(formatDate(0) == "")
-    }
-
-    @Test func dateNegativeReturnsEmpty() {
-        #expect(formatDate(-1) == "")
-    }
-
-    @Test func dateValidTimestamp() {
-        #expect(!formatDate(1_700_000_000).isEmpty)
-    }
+    // MARK: - formatRelativeDate
 
     @Test func relativeDateZeroReturnsEmpty() {
         #expect(formatRelativeDate(0) == "")
+    }
+
+    @Test func relativeDateNegativeReturnsEmpty() {
+        #expect(formatRelativeDate(-1) == "")
     }
 
     @Test func relativeDateValidTimestamp() {

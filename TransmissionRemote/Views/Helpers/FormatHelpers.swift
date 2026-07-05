@@ -50,13 +50,6 @@ func formatETA(_ seconds: Int) -> String {
     }
 }
 
-@MainActor
-func formatDate(_ unixTimestamp: Int) -> String {
-    guard unixTimestamp > 0 else { return "" }
-    let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
-    return relativeDateFormatter.localizedString(for: date, relativeTo: .now)
-}
-
 func formatAbsoluteDate(_ unixTimestamp: Int) -> String {
     guard unixTimestamp > 0 else { return "" }
     let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
