@@ -98,14 +98,26 @@ final class TorrentManager {
         torrents.reduce(0) { $0 + $1.rateUpload }
     }
 
+    private static let invalidServerURLMessage =
+        "Invalid server URL. Check the address in Settings."
+
     init() {
-        client = TransmissionClient.fromDefaults()
-        startPolling()
+        if let configured = TransmissionClient.fromDefaults() {
+            client = configured
+            startPolling()
+        } else {
+            client = TransmissionClient(endpoint: TransmissionClient.defaultEndpoint,
+                                        username: nil, password: nil)
+            connectionState = .error
+            errorMessage = Self.invalidServerURLMessage
+        }
     }
 
     /// Test-only initializer that skips network setup
     init(testing: Bool) {
         client = TransmissionClient.fromDefaults()
+            ?? TransmissionClient(endpoint: TransmissionClient.defaultEndpoint,
+                                  username: nil, password: nil)
         // Don't start polling in tests
     }
 
@@ -218,7 +230,12 @@ final class TorrentManager {
 
     func reconnect() {
         stopPolling()
-        client = TransmissionClient.fromDefaults()
+        guard let newClient = TransmissionClient.fromDefaults() else {
+            connectionState = .error
+            errorMessage = Self.invalidServerURLMessage
+            return
+        }
+        client = newClient
         // Hashes from the previous server must not seed completion detection,
         // or every finished torrent on the new server would notify at once.
         previousPercentDone = [:]

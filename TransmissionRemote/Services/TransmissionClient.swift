@@ -16,12 +16,19 @@ actor TransmissionClient {
 
     static let defaultEndpoint = URL(string: "http://localhost:9091/transmission/rpc")!
 
-    static func parseEndpoint(_ serverURL: String?) -> URL {
-        guard let serverURL, !serverURL.isEmpty else { return defaultEndpoint }
-        let trimmed = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: ["/"])
-        guard let url = URL(string: trimmed), url.scheme != nil, url.host != nil else {
-            return defaultEndpoint
+    /// Returns the RPC endpoint for a user-entered server address, defaulting
+    /// the scheme to http when omitted (e.g. "192.168.1.5:9091"). Returns the
+    /// localhost default when unconfigured, and nil when the address is
+    /// unparseable — callers must surface that rather than guess a server.
+    static func parseEndpoint(_ serverURL: String?) -> URL? {
+        var trimmed = (serverURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return defaultEndpoint }
+        if !trimmed.contains("://") {
+            trimmed = "http://" + trimmed
+        }
+        while trimmed.hasSuffix("/") { trimmed.removeLast() }
+        guard let url = URL(string: trimmed), let host = url.host, !host.isEmpty else {
+            return nil
         }
         if url.path.hasSuffix("/transmission/rpc") {
             return url
@@ -29,9 +36,9 @@ actor TransmissionClient {
         return url.appendingPathComponent("transmission/rpc")
     }
 
-    static func fromDefaults() -> TransmissionClient {
+    static func fromDefaults() -> TransmissionClient? {
         let serverURL = UserDefaults.standard.string(forKey: "serverURL")
-        let endpoint = parseEndpoint(serverURL)
+        guard let endpoint = parseEndpoint(serverURL) else { return nil }
 
         let username = KeychainHelper.load(account: "username")
         let password = KeychainHelper.load(account: "password")
