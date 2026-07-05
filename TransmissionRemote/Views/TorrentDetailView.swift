@@ -422,7 +422,8 @@ private struct FilesTab: View {
                 HStack(spacing: 6) {
                     ZStack(alignment: .leading) {
                         Capsule().fill(.tertiary)
-                        Capsule().fill(.tint).scaleEffect(x: node.progress, anchor: .leading)
+                        // Scale of exactly 0 is a singular transform AppKit warns about
+                        Capsule().fill(.tint).scaleEffect(x: max(node.progress, 0.001), anchor: .leading)
                     }
                     .frame(height: 6)
                     Text("\(Int(node.progress * 100))%")

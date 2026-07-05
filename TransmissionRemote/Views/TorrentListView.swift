@@ -837,7 +837,8 @@ private struct ProgressCell: View {
                     .fill(.tertiary)
                 Capsule()
                     .fill(isChecking ? AnyShapeStyle(.orange) : AnyShapeStyle(.tint))
-                    .scaleEffect(x: progress, anchor: .leading)
+                    // Scale of exactly 0 is a singular transform AppKit warns about
+                    .scaleEffect(x: max(progress, 0.001), anchor: .leading)
             }
             .frame(height: 6)
             Text("\(Int(progress * 100))%")
