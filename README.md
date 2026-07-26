@@ -2,6 +2,8 @@
 
 A native macOS client for a remote [Transmission](https://transmissionbt.com) daemon. SwiftUI, no dependencies.
 
+![The main window, listing torrents with progress, transfer rates, and totals](docs/screenshot.png)
+
 ## Features
 
 - Sortable table with customizable columns — every RPC field is available, and layout and sort order persist
