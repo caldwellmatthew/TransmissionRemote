@@ -6,10 +6,17 @@ struct TorrentDetailView: View {
     @State private var torrent: Torrent?
     @AppStorage("pollInterval") private var pollInterval: Double = 5.0
     @State private var loadFailed = false
+    @State private var wasRemoved = false
 
     var body: some View {
         Group {
-            if let torrent {
+            if wasRemoved {
+                ContentUnavailableView(
+                    "Torrent No Longer Exists",
+                    systemImage: "trash",
+                    description: Text("This torrent has been removed from the server.")
+                )
+            } else if let torrent {
                 TabView {
                     InfoTab(torrent: torrent)
                         .tabItem { Label("Info", systemImage: "info.circle") }
@@ -48,6 +55,13 @@ struct TorrentDetailView: View {
         if let detail {
             torrent = detail
             loadFailed = false
+            wasRemoved = false
+        } else if manager.connectionState == .connected
+                    && !manager.torrents.contains(where: { $0.id == torrentID }) {
+            // getTorrentDetail returns nil for any error (including transient
+            // network blips), so only treat it as "removed" when we're connected
+            // and the torrent is genuinely gone from the polled list.
+            wasRemoved = true
         } else if torrent == nil {
             loadFailed = true
         }
