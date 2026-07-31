@@ -179,7 +179,13 @@ struct SettingsView: View {
         .frame(width: 400)
         .padding()
         .onChange(of: manager.sessionSettings?.altSpeedEnabled) {
-            loadSettings()
+            // Turtle mode can be toggled elsewhere (menu bar, status bar button)
+            // while this window has unsaved field edits. Reflect only that one
+            // toggle instead of reloading every field, which would clobber
+            // whatever the user is currently typing.
+            if let enabled = manager.sessionSettings?.altSpeedEnabled {
+                altSpeedEnabled = enabled
+            }
         }
         .task {
             portTestState = .idle
