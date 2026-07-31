@@ -249,7 +249,12 @@ final class TorrentManager {
 
     // MARK: - Session
 
-    func getDefaultDownloadDir() async -> String {
+    /// Returns the server's default download directory. Failures return an
+    /// empty string (which already means "use the server default"). When
+    /// `reportErrors` is false, errors are swallowed silently rather than
+    /// surfaced via `actionError` — the Add sheet uses this so a failed lookup
+    /// doesn't pop the main window's error alert underneath the sheet.
+    func getDefaultDownloadDir(reportErrors: Bool = true) async -> String {
         do {
             return try await client.getSession().downloadDir
         } catch is CancellationError {
@@ -257,7 +262,7 @@ final class TorrentManager {
         } catch let error as URLError where error.code == .cancelled {
             return ""
         } catch {
-            actionError = error.localizedDescription
+            if reportErrors { actionError = error.localizedDescription }
             return ""
         }
     }

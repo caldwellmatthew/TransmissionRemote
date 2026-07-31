@@ -63,8 +63,10 @@ struct AddTorrentSheet: View {
             .padding()
         }
         .task {
-            downloadDir = await manager.getDefaultDownloadDir()
+            // Populate the link field first so it's visible (and Add enabled)
+            // immediately, before the potentially slow download-dir round-trip.
             if case .link(let str) = source { linkText = str }
+            downloadDir = await manager.getDefaultDownloadDir(reportErrors: false)
         }
     }
 
