@@ -38,6 +38,15 @@ struct TableColumnWidthPersister: NSViewRepresentable {
                     self.coordinator.discover(from: window.contentView!)
                 }
             }
+            // Fallback: if discovery ever misses the NSTableView, the Table would
+            // otherwise stay at opacity 0 forever. Force the ready signal after a
+            // grace period so the table always becomes visible.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                guard let self else { return }
+                MainActor.assumeIsolated {
+                    self.coordinator.forceReady()
+                }
+            }
         }
     }
 
@@ -52,6 +61,13 @@ struct TableColumnWidthPersister: NSViewRepresentable {
 
         init(ready: Binding<Bool>) {
             self.ready = ready
+        }
+
+        /// Ensures the table becomes visible even if discovery never found the
+        /// underlying NSTableView (e.g. an unexpected view hierarchy).
+        func forceReady() {
+            guard !ready.wrappedValue else { return }
+            ready.wrappedValue = true
         }
 
         func discover(from contentView: NSView) {
