@@ -7,11 +7,17 @@ actor TransmissionClient {
     private var sessionId: String?
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    private let session: URLSession
 
     init(endpoint: URL, username: String?, password: String?) {
         self.endpoint = endpoint
         self.username = username
         self.password = password
+        // URLSession.shared uses a 60s request timeout, which leaves the UI
+        // stuck in "Connecting…" for up to a minute against a dead server.
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10
+        self.session = URLSession(configuration: config)
     }
 
     static let defaultEndpoint = URL(string: "http://localhost:9091/transmission/rpc")!
@@ -316,7 +322,7 @@ actor TransmissionClient {
 
         req.httpBody = body
 
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
 
         guard let http = response as? HTTPURLResponse else {
             throw TransmissionError.invalidResponse
