@@ -4,7 +4,7 @@ import Security
 enum KeychainHelper {
     private static let service = "dev.caldwell.TransmissionRemote"
 
-    static func save(account: String, value: String) {
+    static func save(account: String, value: String) -> Bool {
         let data = Data(value.utf8)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -17,7 +17,7 @@ enum KeychainHelper {
 
         var add = query
         add[kSecValueData as String] = data
-        SecItemAdd(add as CFDictionary, nil)
+        return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
     }
 
     static func load(account: String) -> String? {

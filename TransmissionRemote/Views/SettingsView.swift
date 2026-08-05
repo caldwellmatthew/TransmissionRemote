@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var peerPortRandomOnStart = false
     @State private var portForwardingEnabled = false
     @State private var portTestState: PortTestState = .idle
+    @State private var credentialSaveFailed = false
 
     private enum PortTestState: Equatable {
         case idle, testing, open, closed, failed
@@ -40,9 +41,17 @@ struct SettingsView: View {
                 SecureField("Password", text: $password)
                     .textFieldStyle(.roundedBorder)
                 Button("Connect") {
-                    KeychainHelper.save(account: "username", value: username)
-                    KeychainHelper.save(account: "password", value: password)
+                    let savedUsername = KeychainHelper.save(account: "username", value: username)
+                    let savedPassword = KeychainHelper.save(account: "password", value: password)
+                    if !savedUsername || !savedPassword {
+                        credentialSaveFailed = true
+                    }
                     manager.reconnect()
+                }
+                .alert("Couldn't Save Credentials", isPresented: $credentialSaveFailed) {
+                    Button("OK") {}
+                } message: {
+                    Text("The username and password could not be stored in the keychain. The connection will use the previously saved credentials, if any.")
                 }
             }
 
