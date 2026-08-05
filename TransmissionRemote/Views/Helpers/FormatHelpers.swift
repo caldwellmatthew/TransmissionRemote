@@ -38,7 +38,7 @@ func formatETA(_ seconds: Int) -> String {
     let m = (seconds % 3600) / 60
     let s = seconds % 60
 
-    if h > 24 {
+    if h >= 24 {
         let days = h / 24
         return "\(days)d \(h % 24)h"
     } else if h > 0 {

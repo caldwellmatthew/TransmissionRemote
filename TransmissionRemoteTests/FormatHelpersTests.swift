@@ -64,6 +64,17 @@ struct FormatHelpersTests {
         #expect(formatETA(3661) == "1h 1m 1s")
     }
 
+    @Test func etaExactly24Hours() {
+        // 24h should switch to days (aligned with formatDuration's 1d boundary),
+        // not render as "24h 0m 0s".
+        #expect(formatETA(86_400) == "1d 0h")
+    }
+
+    @Test func etaJustOver24Hours() {
+        // 24h30m rolls into days, dropping the sub-hour remainder.
+        #expect(formatETA(88_200) == "1d 0h")
+    }
+
     @Test func etaMultiDay() {
         #expect(formatETA(90000) == "1d 1h")
     }
