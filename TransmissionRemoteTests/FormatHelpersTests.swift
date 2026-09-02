@@ -142,4 +142,24 @@ struct FormatHelpersTests {
     @Test func absoluteDateValidTimestamp() {
         #expect(formatAbsoluteDate(1_700_000_000).contains("2023"))
     }
+
+    // MARK: - removeConfirmationTitle
+
+    @Test func removeTitleNamesTheSingleTorrent() {
+        #expect(removeConfirmationTitle(singleName: "Some Torrent", count: 1)
+                == "Remove \u{201C}Some Torrent\u{201D}?")
+    }
+
+    @Test func removeTitleKeepsNameVerbatim() {
+        let name = "Long.Release.Name.2019.2160p.UHD-GrOuP"
+        #expect(removeConfirmationTitle(singleName: name, count: 1).contains(name))
+    }
+
+    @Test func removeTitlePluralizesCounts() {
+        #expect(removeConfirmationTitle(singleName: nil, count: 3) == "Remove 3 torrents?")
+    }
+
+    @Test func removeTitleSingularWhenNameIsUnknown() {
+        #expect(removeConfirmationTitle(singleName: nil, count: 1) == "Remove 1 torrent?")
+    }
 }

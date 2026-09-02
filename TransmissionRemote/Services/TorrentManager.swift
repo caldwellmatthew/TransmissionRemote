@@ -369,6 +369,12 @@ final class TorrentManager {
         await refresh()
     }
 
+    /// The selected torrent when exactly one is selected and still known to us.
+    var singleSelectedTorrent: Torrent? {
+        guard selectedTorrentIDs.count == 1, let id = selectedTorrentIDs.first else { return nil }
+        return torrents.first { $0.id == id }
+    }
+
     /// Labels in use across all torrents, sorted case-insensitively.
     var allLabels: [String] {
         let set = Set(torrents.flatMap(\.labels))

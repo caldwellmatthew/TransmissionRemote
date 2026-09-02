@@ -80,3 +80,13 @@ func formatPriority(_ priority: Int) -> String {
     default: "Normal"
     }
 }
+
+/// Title for the remove confirmation. Names the torrent outright when only one is
+/// selected, so the user can see what they're about to remove; falls back to a
+/// count when the selection is larger or the selected torrent is no longer known.
+func removeConfirmationTitle(singleName: String?, count: Int) -> String {
+    if let singleName {
+        return "Remove \u{201C}\(singleName)\u{201D}?"
+    }
+    return "Remove \(count) torrent\(count == 1 ? "" : "s")?"
+}

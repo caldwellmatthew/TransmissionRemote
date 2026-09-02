@@ -758,7 +758,10 @@ struct TorrentListView: View {
             .disabled(manager.selectedTorrentIDs.isEmpty)
             .help("Remove selected torrents")
             .confirmationDialog(
-                "Remove \(manager.selectedTorrentIDs.count) torrent\(manager.selectedTorrentIDs.count == 1 ? "" : "s")?",
+                removeConfirmationTitle(
+                    singleName: manager.singleSelectedTorrent?.name,
+                    count: manager.selectedTorrentIDs.count
+                ),
                 isPresented: $showingRemoveConfirmation,
                 titleVisibility: .visible
             ) {
