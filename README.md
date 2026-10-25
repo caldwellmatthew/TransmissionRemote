@@ -1,4 +1,4 @@
-# Transmission Remote
+# <img src="docs/icon.png" width="40" align="top" alt=""> Transmission Remote
 
 A native macOS client for a remote [Transmission](https://transmissionbt.com) daemon. SwiftUI, no dependencies.
 
