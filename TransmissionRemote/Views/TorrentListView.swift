@@ -27,6 +27,7 @@ private struct TorrentFileDrop: Transferable {
 
 struct TorrentListView: View {
     @Environment(TorrentManager.self) private var manager
+    @Environment(AppDelegate.self) private var appDelegate
     @Environment(\.openWindow) private var openWindow
     @State private var sortOrder: [KeyPathComparator<Torrent>]
     @AppStorage("torrentTableColumns") private var columnCustomization: TableColumnCustomization<Torrent>
@@ -168,6 +169,8 @@ struct TorrentListView: View {
         .sheet(item: $pendingAddSource) { source in
             AddTorrentSheet(source: source, manager: manager)
         }
+        .onChange(of: appDelegate.pendingAdds, initial: true) { presentNextQueuedAdd() }
+        .onChange(of: pendingAddSource) { presentNextQueuedAdd() }
         .fileImporter(
             isPresented: $showingFileImporter,
             allowedContentTypes: [.init(filenameExtension: "torrent")!],
@@ -181,16 +184,11 @@ struct TorrentListView: View {
             pendingAddSource = .file(file.url)
             return true
         } isTargeted: { _ in }
-        .onReceive(NotificationCenter.default.publisher(for: .openTorrentFile)) { notification in
-            if let url = notification.object as? URL {
-                pendingAddSource = .file(url)
-            } else {
-                showingFileImporter = true
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .openTorrentFile)) { _ in
+            showingFileImporter = true
         }
-        .onReceive(NotificationCenter.default.publisher(for: .addTorrentLink)) { notification in
-            let link = (notification.object as? String) ?? ""
-            pendingAddSource = .link(link)
+        .onReceive(NotificationCenter.default.publisher(for: .addTorrentLink)) { _ in
+            pendingAddSource = .link("")
         }
         .onReceive(NotificationCenter.default.publisher(for: .showTorrentInfo)) { _ in
             if manager.selectedTorrentIDs.count == 1, let id = manager.selectedTorrentIDs.first {
@@ -205,6 +203,14 @@ struct TorrentListView: View {
         } message: {
             Text(manager.actionError ?? "")
         }
+    }
+
+    /// Shows the next torrent queued by Finder or a magnet link, once no add
+    /// sheet is already up. Runs on appear too, to pick up anything that
+    /// arrived while the app was launching.
+    private func presentNextQueuedAdd() {
+        guard pendingAddSource == nil, !appDelegate.pendingAdds.isEmpty else { return }
+        pendingAddSource = appDelegate.pendingAdds.removeFirst()
     }
 
     private var sortedTorrents: [Torrent] {

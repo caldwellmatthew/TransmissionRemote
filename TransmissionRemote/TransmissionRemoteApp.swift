@@ -18,6 +18,7 @@ struct TransmissionRemoteApp: App {
         Window("Transmission Remote", id: "main") {
             TorrentListView()
                 .environment(torrentManager)
+                .environment(appDelegate)
         }
         .defaultSize(width: 800, height: 500)
         .commands {
@@ -94,12 +95,23 @@ private struct MenuBarContent: View {
 }
 
 @MainActor
-class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
-    // Intercept file-open and URL Apple Events ourselves. SwiftUI's default
-    // 'odoc' dispatch can tear down and re-create the Window scene to
-    // "deliver" the URL, producing a visible flash before the add-torrent
-    // sheet appears. Installing our own handlers bypasses SwiftUI's URL
-    // routing entirely.
+@Observable
+final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+    /// Torrents handed to us by Finder or a magnet link, waiting for the main
+    /// window to present them. Queued rather than posted as notifications: an
+    /// event that launches the app arrives before any view exists to observe
+    /// it, and several files can arrive in one event.
+    var pendingAdds: [AddTorrentSheet.Source] = []
+
+    // Intercept file-open and URL Apple Events ourselves rather than going
+    // through SwiftUI's URL routing:
+    // - With `application(_:open:)`, SwiftUI still routes the event to the
+    //   main window and re-presents it: the window blanks to white and
+    //   briefly shrinks before the sheet appears. Handling the events here
+    //   leaves the window untouched.
+    // - `.onOpenURL` receives only the first file of a multi-file open, both
+    //   at launch and while running, and `handlesExternalEvents` doesn't
+    //   change that; the rest are silently dropped.
     func applicationWillFinishLaunching(_ notification: Notification) {
         let aem = NSAppleEventManager.shared()
         aem.setEventHandler(
@@ -125,7 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
                   let urlDesc = item.coerce(toDescriptorType: typeFileURL),
                   let url = URL(dataRepresentation: urlDesc.data, relativeTo: nil) else { continue }
             if url.isFileURL, url.pathExtension.lowercased() == "torrent" {
-                NotificationCenter.default.post(name: .openTorrentFile, object: url)
+                pendingAdds.append(.file(url))
             }
         }
     }
@@ -133,7 +145,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     @objc func handleGetURLAE(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
         if let urlStr = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
            let url = URL(string: urlStr), url.scheme == "magnet" {
-            NotificationCenter.default.post(name: .addTorrentLink, object: url.absoluteString)
+            pendingAdds.append(.link(url.absoluteString))
         }
     }
 

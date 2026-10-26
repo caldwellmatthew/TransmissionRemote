@@ -16,7 +16,8 @@ xcodebuild -scheme TransmissionRemote -configuration Debug build
 ## Key patterns
 - `Table` with `columnCustomization` and `@AppStorage` for persisted column state
 - `WindowGroup(for: Int.self)` for per-torrent detail windows (opened via double-click or Cmd+I)
-- `NotificationCenter` bridges AppDelegate events (file opens, magnet links) to SwiftUI views
+- `NotificationCenter` bridges menu commands to SwiftUI views
+- Finder file opens and magnet links queue on `AppDelegate.pendingAdds` (observable, in the environment), not notifications — a launch-triggering event arrives before any view can observe it
 
 ## SwiftUI quirks encountered
 - `ProgressView` causes rendering glitches during Table column reorder — use capsule + `scaleEffect` instead
