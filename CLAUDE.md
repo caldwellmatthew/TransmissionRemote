@@ -24,4 +24,5 @@ xcodebuild -scheme TransmissionRemote -configuration Debug build
 - Table column builder has 10-column limit — wrap extras in `Group`
 - `.toolbar(removing: .title)` requires macOS 15 — use `.navigationTitle("")` instead
 - Pin the Name column with `.customizationID("name")` + `.disabledCustomizationBehavior(.all)` — omitting the ID makes SwiftUI park it at the end whenever stored customization re-applies
+- Never swap a `Table` in and out with `if`/`switch` for state changes that recur (connection errors, empty lists) — keep it mounted and overlay the other state with `.opacity` + `.overlay`. Each teardown of its scroll view leaks AppKit's scroll-edge pocket views, along with their display-cycle and notification observers, and they accumulate for the life of the process
 - Table empty placeholder rows don't fill width if total column ideal widths are too small — use large `ideal:` on flexible columns

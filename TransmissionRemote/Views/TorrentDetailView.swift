@@ -572,9 +572,7 @@ private struct TrackersTab: View {
     }
 
     var body: some View {
-        if trackerRows.isEmpty {
-            ContentUnavailableView("No Tracker Data", systemImage: "antenna.radiowaves.left.and.right")
-        } else {
+        // Kept mounted while empty rather than swapped out; see TorrentListView.
         Table(trackerRows) {
             TableColumn("Host") { stat in
                 Text(stat.host)
@@ -601,6 +599,11 @@ private struct TrackersTab: View {
             .width(min: 50, ideal: 60)
         }
         .scrollIndicators(.hidden)
+        .opacity(trackerRows.isEmpty ? 0 : 1)
+        .overlay {
+            if trackerRows.isEmpty {
+                ContentUnavailableView("No Tracker Data", systemImage: "antenna.radiowaves.left.and.right")
+            }
         }
     }
 }
@@ -615,9 +618,7 @@ private struct PeersTab: View {
     }
 
     var body: some View {
-        if peerRows.isEmpty {
-            ContentUnavailableView("No Peers Connected", systemImage: "person.2")
-        } else {
+        // Kept mounted while empty rather than swapped out; see TorrentListView.
         Table(peerRows) {
             TableColumn("Address") { peer in
                 Text(peer.address)
@@ -656,6 +657,11 @@ private struct PeersTab: View {
             .width(min: 30, ideal: 45)
         }
         .scrollIndicators(.hidden)
+        .opacity(peerRows.isEmpty ? 0 : 1)
+        .overlay {
+            if peerRows.isEmpty {
+                ContentUnavailableView("No Peers Connected", systemImage: "person.2")
+            }
         }
     }
 }

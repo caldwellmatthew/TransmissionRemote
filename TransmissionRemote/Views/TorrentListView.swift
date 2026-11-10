@@ -52,46 +52,17 @@ struct TorrentListView: View {
         @Bindable var manager = manager
 
         VStack(spacing: 0) {
-            Group {
-                switch manager.connectionState {
-                case .disconnected, .connecting:
-                    ContentUnavailableView {
-                        ProgressView()
-                    } description: {
-                        Text("Connecting to Transmission...")
-                    }
-
-                case .error:
-                    ContentUnavailableView {
-                        Label("Connection Error", systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(manager.errorMessage ?? "Unable to connect")
-                    } actions: {
-                        Button("Retry") {
-                            manager.reconnect()
-                        }
-                        SettingsLink {
-                            Text("Open Settings")
-                        }
-                    }
-
-                case .connected:
-                    torrentTable
-                        .opacity(manager.filteredTorrents.isEmpty ? 0 : 1)
-                        .overlay {
-                            if manager.filteredTorrents.isEmpty && manager.torrents.isEmpty {
-                                ContentUnavailableView(
-                                    "No Torrents",
-                                    systemImage: "tray",
-                                    description: Text("Add a torrent to get started")
-                                )
-                            } else if manager.filteredTorrents.isEmpty {
-                                ContentUnavailableView.search(text: manager.searchText)
-                            }
-                        }
-                }
-            }
-            .frame(maxHeight: .infinity)
+            // The Table stays mounted through every connection state, with the
+            // other states laid over it. Removing a Table's scroll view from a
+            // live window leaks AppKit's scroll-edge pocket views and their
+            // display-cycle and notification observers, so rebuilding the
+            // table on each dropped connection piled them up for as long as
+            // the app stayed open.
+            torrentTable
+                .opacity(showsTable ? 1 : 0)
+                .allowsHitTesting(showsTable)
+                .overlay { stateOverlay }
+                .frame(maxHeight: .infinity)
 
             if manager.connectionState == .connected {
                 Divider()
@@ -211,6 +182,47 @@ struct TorrentListView: View {
     private func presentNextQueuedAdd() {
         guard pendingAddSource == nil, !appDelegate.pendingAdds.isEmpty else { return }
         pendingAddSource = appDelegate.pendingAdds.removeFirst()
+    }
+
+    private var showsTable: Bool {
+        manager.connectionState == .connected && !manager.filteredTorrents.isEmpty
+    }
+
+    @ViewBuilder
+    private var stateOverlay: some View {
+        switch manager.connectionState {
+        case .disconnected, .connecting:
+            ContentUnavailableView {
+                ProgressView()
+            } description: {
+                Text("Connecting to Transmission...")
+            }
+
+        case .error:
+            ContentUnavailableView {
+                Label("Connection Error", systemImage: "wifi.exclamationmark")
+            } description: {
+                Text(manager.errorMessage ?? "Unable to connect")
+            } actions: {
+                Button("Retry") {
+                    manager.reconnect()
+                }
+                SettingsLink {
+                    Text("Open Settings")
+                }
+            }
+
+        case .connected:
+            if manager.torrents.isEmpty {
+                ContentUnavailableView(
+                    "No Torrents",
+                    systemImage: "tray",
+                    description: Text("Add a torrent to get started")
+                )
+            } else if manager.filteredTorrents.isEmpty {
+                ContentUnavailableView.search(text: manager.searchText)
+            }
+        }
     }
 
     private var sortedTorrents: [Torrent] {
